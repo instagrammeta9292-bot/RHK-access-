@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>3D Human Experience</title>
+<title>3D Curtain Reveal</title>
 
 <style>
 * {
@@ -14,18 +14,20 @@
 }
 
 body {
-    background: #11131c;
     overflow: hidden;
+    background: transparent;
     font-family: Arial, sans-serif;
 }
 
 #scene {
-    width: 100%;
-    height: 100vh;
-    height: 100dvh;
-    position: relative;
+    position: fixed;
+    inset: 0;
     overflow: hidden;
+    pointer-events: none;
+    z-index: 9999;
 }
+
+/* CHARACTER */
 
 #character {
     position: absolute;
@@ -33,51 +35,151 @@ body {
     height: 350px;
     bottom: 0;
     left: 0;
+    z-index: 5;
     will-change: transform;
 }
 
 canvas {
-    display: block;
     width: 100%;
     height: 100%;
+    display: block;
 }
 
-#message {
+/* CURTAINS */
+
+.curtain {
     position: absolute;
-    top: 25%;
-    left: 50%;
-    transform: translate(-50%, 15px);
-    background: #fff;
-    color: #292338;
-    padding: 15px 22px;
-    border-radius: 18px;
-    font-size: 17px;
-    font-weight: bold;
-    text-align: center;
-    width: max-content;
-    max-width: 88%;
-    opacity: 0;
-    transition: 0.6s;
-    z-index: 5;
-    box-shadow: 0 8px 30px #0005;
+    top: 0;
+    bottom: 0;
+    width: 51%;
+    z-index: 2;
+    background:
+        repeating-linear-gradient(
+            90deg,
+            #650d27 0px,
+            #a51d43 20px,
+            #710f2c 40px,
+            #bd3155 55px,
+            #650d27 75px
+        );
+    box-shadow: 0 0 35px #0009;
+    transition: transform 2s cubic-bezier(.7,0,.2,1);
 }
 
-#message.show {
-    opacity: 1;
-    transform: translate(-50%, 0);
+#leftCurtain {
+    left: 0;
+    border-right: 5px solid #d6a64b;
 }
+
+#rightCurtain {
+    right: 0;
+    border-left: 5px solid #d6a64b;
+}
+
+#scene.open #leftCurtain {
+    transform: translateX(-105%);
+}
+
+#scene.open #rightCurtain {
+    transform: translateX(105%);
+}
+
+/* CURTAIN TOP */
+
+#topBar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 16px;
+    background: linear-gradient(
+        #f5d78a,
+        #a67b30,
+        #f5d78a
+    );
+    z-index: 4;
+}
+
+/* ROPE */
+
+#rope {
+    position: absolute;
+    right: 8%;
+    top: 0;
+    width: 12px;
+    height: 58%;
+    z-index: 6;
+    transform-origin: top;
+}
+
+#ropeLine {
+    position: absolute;
+    top: 0;
+    left: 5px;
+    width: 3px;
+    height: 100%;
+    background: linear-gradient(
+        90deg,
+        #8c582b,
+        #f1d19b,
+        #80502b
+    );
+    border-radius: 5px;
+}
+
+#ropeHandle {
+    position: absolute;
+    bottom: 0;
+    left: -5px;
+    width: 22px;
+    height: 32px;
+    border: 3px solid #d5ad6c;
+    border-radius: 50%;
+    background: #8b572c;
+}
+
+/* ROPE PULL */
+
+#rope.pulled {
+    animation: ropePull 0.8s ease-in-out forwards;
+}
+
+@keyframes ropePull {
+    0% {
+        transform: translateY(0);
+    }
+
+    35% {
+        transform: translateY(90px);
+    }
+
+    65% {
+        transform: translateY(65px);
+    }
+
+    100% {
+        transform: translateY(100px);
+    }
+}
+
+/* STATUS */
 
 #status {
     position: absolute;
-    top: 12px;
-    left: 12px;
-    right: 12px;
-    background: #252b3b;
+    top: 15px;
+    left: 15px;
+    padding: 10px 15px;
+    background: #171727dd;
     color: white;
-    padding: 12px;
-    border-radius: 12px;
     font-size: 12px;
+    border-radius: 10px;
     z-index: 10;
+}
+
+/* REMOVE STATUS WHEN DONE */
+
+#scene.finished #status {
+    display: none;
 }
 
 </style>
@@ -96,9 +198,18 @@ canvas {
 
 <div id="scene">
 
-    <div id="status">Loading 3D human...</div>
+    <div id="status">Loading character...</div>
 
-    <div id="message"></div>
+    <div id="topBar"></div>
+
+    <div id="leftCurtain" class="curtain"></div>
+
+    <div id="rightCurtain" class="curtain"></div>
+
+    <div id="rope">
+        <div id="ropeLine"></div>
+        <div id="ropeHandle"></div>
+    </div>
 
     <div id="character">
         <canvas id="human"></canvas>
@@ -114,22 +225,24 @@ import { GLTFLoader } from
 "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/loaders/GLTFLoader.js";
 
 
-/* =====================================
+/* ===============================
    ELEMENTS
-===================================== */
+================================ */
 
 const canvas = document.getElementById("human");
 
-const characterBox = document.getElementById("character");
+const character = document.getElementById("character");
+
+const sceneElement = document.getElementById("scene");
 
 const status = document.getElementById("status");
 
-const message = document.getElementById("message");
+const rope = document.getElementById("rope");
 
 
-/* =====================================
-   SCENE
-===================================== */
+/* ===============================
+   THREE JS SCENE
+================================ */
 
 const scene = new THREE.Scene();
 
@@ -145,12 +258,12 @@ camera.position.set(0, 1.1, 4);
 camera.lookAt(0, 0.9, 0);
 
 
-/* =====================================
+/* ===============================
    RENDERER
-===================================== */
+================================ */
 
 const renderer = new THREE.WebGLRenderer({
-    canvas: canvas,
+    canvas,
     alpha: true,
     antialias: true
 });
@@ -168,9 +281,9 @@ renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.2;
 
 
-/* =====================================
-   LIGHTING
-===================================== */
+/* ===============================
+   LIGHTS
+================================ */
 
 scene.add(
     new THREE.HemisphereLight(
@@ -180,28 +293,19 @@ scene.add(
     )
 );
 
-const mainLight = new THREE.DirectionalLight(
+const light = new THREE.DirectionalLight(
     0xffffff,
     3
 );
 
-mainLight.position.set(2, 4, 5);
+light.position.set(2, 4, 5);
 
-scene.add(mainLight);
-
-const fillLight = new THREE.DirectionalLight(
-    0x9ebaff,
-    1
-);
-
-fillLight.position.set(-3, 2, -2);
-
-scene.add(fillLight);
+scene.add(light);
 
 
-/* =====================================
+/* ===============================
    VARIABLES
-===================================== */
+================================ */
 
 let human = null;
 
@@ -209,28 +313,22 @@ let mixer = null;
 
 let walkAction = null;
 
-let isWalking = false;
+let runAction = null;
 
-let bones = {};
-
-let baseRotations = {};
-
-let kneelBones = [];
-
-let baseY = 0;
+let walking = false;
 
 let phase = "loading";
 
 let phaseStart = 0;
 
-let currentTime = 0;
+let elapsed = 0;
 
 const clock = new THREE.Clock();
 
 
-/* =====================================
+/* ===============================
    HELPER FUNCTIONS
-===================================== */
+================================ */
 
 function smooth(t) {
 
@@ -244,342 +342,58 @@ function lerp(a, b, t) {
 
 }
 
-function normalize(name) {
-
-    return name.toLowerCase().replace(
-        /[^a-z0-9]/g,
-        ""
-    );
-
-}
-
-function findBone(names) {
-
-    for (const name of names) {
-
-        const result = bones[normalize(name)];
-
-        if (result) return result;
-
-    }
-
-    return null;
-
-}
-
 function setPhase(name) {
 
     phase = name;
 
-    phaseStart = currentTime;
+    phaseStart = elapsed;
 
 }
 
-function showMessage(text) {
+function moveCharacter(x, y = 0) {
 
-    message.textContent = text;
-
-    message.classList.add("show");
-
-}
-
-function hideMessage() {
-
-    message.classList.remove("show");
+    character.style.transform =
+        `translate(${x}px, ${-y}px)`;
 
 }
 
 
-/* =====================================
-   FLOWER MODEL
-===================================== */
-
-const flower = new THREE.Group();
-
-const flowerStemMaterial =
-new THREE.MeshStandardMaterial({
-    color: 0x258b48,
-    roughness: 0.8
-});
-
-const petalMaterial =
-new THREE.MeshStandardMaterial({
-    color: 0xff73a6,
-    roughness: 0.45
-});
-
-const centerMaterial =
-new THREE.MeshStandardMaterial({
-    color: 0xffd65c
-});
-
-const stem = new THREE.Mesh(
-    new THREE.CylinderGeometry(
-        0.018, 0.025, 0.65, 8
-    ),
-    flowerStemMaterial
-);
-
-stem.position.y = -0.15;
-
-flower.add(stem);
-
-
-// Flower centre
-
-const centre = new THREE.Mesh(
-    new THREE.SphereGeometry(0.09, 16, 16),
-    centerMaterial
-);
-
-centre.position.y = 0.25;
-
-flower.add(centre);
-
-
-// Six flower petals
-
-for (let i = 0; i < 6; i++) {
-
-    const angle = i * Math.PI / 3;
-
-    const petal = new THREE.Mesh(
-        new THREE.SphereGeometry(
-            0.105, 16, 16
-        ),
-        petalMaterial
-    );
-
-    petal.position.set(
-        Math.cos(angle) * 0.13,
-        0.27,
-        Math.sin(angle) * 0.13
-    );
-
-    petal.scale.set(1, 0.65, 1);
-
-    flower.add(petal);
-
-}
-
-
-// Flower leaf
-
-const leaf = new THREE.Mesh(
-    new THREE.SphereGeometry(0.1, 12, 12),
-    flowerStemMaterial
-);
-
-leaf.position.set(0.09, -0.12, 0);
-
-leaf.scale.set(1.5, 0.45, 0.6);
-
-flower.add(leaf);
-
-
-// Initially hidden
-
-flower.visible = false;
-
-flower.scale.setScalar(0.45);
-
-flower.position.set(0.42, 0.8, 0.3);
-
-scene.add(flower);
-
-
-/* =====================================
-   WALKING CONTROLS
-===================================== */
+/* ===============================
+   WALK ANIMATION
+================================ */
 
 function startWalking() {
 
-    if (!walkAction) return;
-
-    if (isWalking) return;
+    if (!walkAction || walking) return;
 
     walkAction.reset();
-
-    walkAction.enabled = true;
 
     walkAction.setEffectiveTimeScale(1);
 
     walkAction.setEffectiveWeight(1);
 
-    walkAction.setLoop(THREE.LoopRepeat);
-
     walkAction.fadeIn(0.3);
 
     walkAction.play();
 
-    isWalking = true;
+    walking = true;
 
 }
 
 function stopWalking() {
 
-    if (!walkAction || !isWalking) return;
+    if (!walkAction || !walking) return;
 
-    walkAction.fadeOut(0.25);
+    walkAction.fadeOut(0.3);
 
-    isWalking = false;
-
-}
-
-
-/* =====================================
-   FIND KNEELING BONES
-===================================== */
-
-function setupKneelBones() {
-
-    const leftUpper = findBone([
-        "LeftUpLeg",
-        "LeftUpperLeg",
-        "thigh_l",
-        "LeftThigh"
-    ]);
-
-    const rightUpper = findBone([
-        "RightUpLeg",
-        "RightUpperLeg",
-        "thigh_r",
-        "RightThigh"
-    ]);
-
-    const leftLower = findBone([
-        "LeftLeg",
-        "LeftLowerLeg",
-        "calf_l",
-        "LeftKnee"
-    ]);
-
-    const rightLower = findBone([
-        "RightLeg",
-        "RightLowerLeg",
-        "calf_r",
-        "RightKnee"
-    ]);
-
-    const hips = findBone([
-        "Hips",
-        "Pelvis"
-    ]);
-
-    const spine = findBone([
-        "Spine",
-        "Spine1"
-    ]);
-
-    kneelBones = [
-        {
-            bone: leftUpper,
-            x: -0.85,
-            z: 0
-        },
-        {
-            bone: rightUpper,
-            x: -0.85,
-            z: 0
-        },
-        {
-            bone: leftLower,
-            x: 1.35,
-            z: 0
-        },
-        {
-            bone: rightLower,
-            x: 1.35,
-            z: 0
-        },
-        {
-            bone: hips,
-            x: -0.15,
-            z: 0
-        },
-        {
-            bone: spine,
-            x: 0.12,
-            z: 0
-        }
-    ].filter(item => item.bone);
-
-
-    console.log(
-        "Kneeling bones:",
-        kneelBones.map(item => item.bone.name)
-    );
+    walking = false;
 
 }
 
 
-/* =====================================
-   KNEEL POSE
-===================================== */
-
-function applyKneel(progress) {
-
-    const t = smooth(progress);
-
-    for (const item of kneelBones) {
-
-        const bone = item.bone;
-
-        const base = baseRotations[
-            normalize(bone.name)
-        ];
-
-        bone.rotation.x =
-            base.x + item.x * t;
-
-        bone.rotation.z =
-            base.z + item.z * t;
-
-    }
-
-    // Lower character slightly
-
-    human.position.y = baseY - 0.12 * t;
-
-}
-
-
-/* =====================================
-   RESTORE STANDING POSE
-===================================== */
-
-function applyStand(progress) {
-
-    const t = smooth(progress);
-
-    for (const item of kneelBones) {
-
-        const bone = item.bone;
-
-        const base = baseRotations[
-            normalize(bone.name)
-        ];
-
-        bone.rotation.x =
-            base.x + item.x * (1 - t);
-
-        bone.rotation.z =
-            base.z + item.z * (1 - t);
-
-    }
-
-    human.position.y = lerp(
-        baseY - 0.12,
-        baseY,
-        t
-    );
-
-}
-
-
-/* =====================================
-   LOAD HUMAN MODEL
-===================================== */
+/* ===============================
+   LOAD CHARACTER
+================================ */
 
 const loader = new GLTFLoader();
 
@@ -594,7 +408,7 @@ loader.load(
         scene.add(human);
 
 
-        // Fit model
+        // Model sizing
 
         const box = new THREE.Box3()
             .setFromObject(human);
@@ -603,52 +417,25 @@ loader.load(
             new THREE.Vector3()
         );
 
-        if (size.y > 0) {
+        const scale = 1.7 / size.y;
 
-            const scale = 1.7 / size.y;
+        human.scale.setScalar(scale);
 
-            human.scale.setScalar(scale);
-
-            human.position.y = -box.min.y * scale;
-
-            baseY = human.position.y;
-
-        }
+        human.position.y = -box.min.y * scale;
 
 
-        // Detect bones
-
-        human.traverse(function(object) {
-
-            if (object.isBone) {
-
-                const key = normalize(object.name);
-
-                bones[key] = object;
-
-                baseRotations[key] = {
-                    x: object.rotation.x,
-                    y: object.rotation.y,
-                    z: object.rotation.z
-                };
-
-            }
-
-        });
-
-
-        // Find kneeling bones
-
-        setupKneelBones();
-
-
-        // Load walk animation
+        // Animation setup
 
         mixer = new THREE.AnimationMixer(human);
 
         const walkClip = gltf.animations.find(
             clip => /walk/i.test(clip.name)
         );
+
+        const runClip = gltf.animations.find(
+            clip => /run/i.test(clip.name)
+        );
+
 
         if (walkClip) {
 
@@ -658,65 +445,51 @@ loader.load(
 
         }
 
+        if (runClip) {
+
+            runAction = mixer.clipAction(runClip);
+
+            runAction.setLoop(THREE.LoopRepeat);
+
+        }
+
 
         status.textContent =
-            "3D HUMAN READY | " +
-            gltf.animations.length +
-            " animations | " +
-            Object.keys(bones).length +
-            " bones";
-
-
-        // Begin animation
+            "Character ready!";
 
         setPhase("enter");
 
     },
-
 
     function(progress) {
 
         if (progress.total > 0) {
 
             status.textContent =
-                "Loading: " +
+                "Loading " +
                 Math.round(
-                    progress.loaded /
-                    progress.total * 100
+                    progress.loaded / progress.total * 100
                 ) + "%";
 
         }
 
     },
 
-
     function(error) {
 
         console.error(error);
 
         status.textContent =
-            "Unable to load man.glb";
+            "Could not load man.glb";
 
     }
 
 );
 
 
-/* =====================================
-   CHARACTER POSITION
-===================================== */
-
-function moveCharacter(x) {
-
-    characterBox.style.transform =
-        `translateX(${x}px)`;
-
-}
-
-
-/* =====================================
-   MAIN SEQUENCE
-===================================== */
+/* ===============================
+   MAIN ANIMATION
+================================ */
 
 function animate() {
 
@@ -727,17 +500,13 @@ function animate() {
         0.05
     );
 
-    currentTime += delta;
-
-
-    // Update walk animation only once per frame
+    elapsed += delta;
 
     if (mixer) {
 
         mixer.update(delta);
 
     }
-
 
     if (!human) {
 
@@ -748,19 +517,23 @@ function animate() {
     }
 
 
-    const screenWidth = window.innerWidth;
+    const width = window.innerWidth;
 
-    const center = (screenWidth - 180) / 2;
+    const center = (width - 180) / 2;
+
+    const ropePosition = width * 0.88 - 180;
 
 
-    /* =================================
-       1. ENTER FROM LEFT
-    ================================= */
+    /* ===========================
+       1. WALK FROM LEFT
+    ============================ */
 
     if (phase === "enter") {
 
+        const duration = 4;
+
         const t = Math.min(
-            (currentTime - phaseStart) / 4,
+            (elapsed - phaseStart) / duration,
             1
         );
 
@@ -768,11 +541,7 @@ function animate() {
             lerp(-200, center, smooth(t))
         );
 
-        // Face walking direction
-
         human.rotation.y = Math.PI / 2;
-
-        flower.visible = false;
 
         startWalking();
 
@@ -787,14 +556,14 @@ function animate() {
     }
 
 
-    /* =================================
-       2. TURN TO FRONT
-    ================================= */
+    /* ===========================
+       2. TURN TOWARDS ROPE
+    ============================ */
 
     else if (phase === "turn") {
 
         const t = Math.min(
-            (currentTime - phaseStart) / 0.9,
+            (elapsed - phaseStart) / 0.7,
             1
         );
 
@@ -808,111 +577,26 @@ function animate() {
 
         if (t >= 1) {
 
-            setPhase("kneel");
+            setPhase("moveRight");
 
         }
 
     }
 
 
-    /* =================================
-       3. KNEEL DOWN
-    ================================= */
+    /* ===========================
+       3. WALK TO RIGHT SIDE
+    ============================ */
 
-    else if (phase === "kneel") {
+    else if (phase === "moveRight") {
 
         const t = Math.min(
-            (currentTime - phaseStart) / 1.5,
-            1
-        );
-
-        moveCharacter(center);
-
-        human.rotation.y = 0;
-
-        applyKneel(t);
-
-        if (t >= 1) {
-
-            flower.visible = true;
-
-            showMessage("A FLOWER FOR YOU ❤️");
-
-            setPhase("present");
-
-        }
-
-    }
-
-
-    /* =================================
-       4. PRESENT FLOWER
-    ================================= */
-
-    else if (phase === "present") {
-
-        moveCharacter(center);
-
-        human.rotation.y = 0;
-
-        // Gentle flower movement
-
-        flower.position.y =
-            0.8 + Math.sin(currentTime * 2) * 0.025;
-
-        flower.rotation.z =
-            Math.sin(currentTime * 1.5) * 0.06;
-
-        if (currentTime - phaseStart >= 3.5) {
-
-            hideMessage();
-
-            setPhase("stand");
-
-        }
-
-    }
-
-
-    /* =================================
-       5. STAND UP
-    ================================= */
-
-    else if (phase === "stand") {
-
-        const t = Math.min(
-            (currentTime - phaseStart) / 1.5,
-            1
-        );
-
-        moveCharacter(center);
-
-        applyStand(t);
-
-        flower.visible = false;
-
-        if (t >= 1) {
-
-            setPhase("exit");
-
-        }
-
-    }
-
-
-    /* =================================
-       6. WALK TO RIGHT
-    ================================= */
-
-    else if (phase === "exit") {
-
-        const t = Math.min(
-            (currentTime - phaseStart) / 4,
+            (elapsed - phaseStart) / 2.5,
             1
         );
 
         moveCharacter(
-            lerp(center, screenWidth + 200, smooth(t))
+            lerp(center, ropePosition, smooth(t))
         );
 
         human.rotation.y = Math.PI / 2;
@@ -923,16 +607,97 @@ function animate() {
 
             stopWalking();
 
-            human.visible = false;
-
-            flower.visible = false;
-
-            status.textContent =
-                "Animation completed!";
-
-            setPhase("finished");
+            setPhase("jump");
 
         }
+
+    }
+
+
+    /* ===========================
+       4. JUMP TO ROPE
+    ============================ */
+
+    else if (phase === "jump") {
+
+        const duration = 1;
+
+        const t = Math.min(
+            (elapsed - phaseStart) / duration,
+            1
+        );
+
+        const jumpHeight =
+            Math.sin(t * Math.PI) * 90;
+
+        moveCharacter(ropePosition, jumpHeight);
+
+        human.rotation.y = Math.PI / 2;
+
+        if (t >= 1) {
+
+            setPhase("pull");
+
+        }
+
+    }
+
+
+    /* ===========================
+       5. PULL ROPE
+    ============================ */
+
+    else if (phase === "pull") {
+
+        moveCharacter(ropePosition);
+
+        human.rotation.y = Math.PI / 2;
+
+        if (elapsed - phaseStart < 0.1) {
+
+            rope.classList.add("pulled");
+
+        }
+
+        if (elapsed - phaseStart >= 1.1) {
+
+            setPhase("open");
+
+        }
+
+    }
+
+
+    /* ===========================
+       6. OPEN CURTAINS
+    ============================ */
+
+    else if (phase === "open") {
+
+        moveCharacter(ropePosition);
+
+        sceneElement.classList.add("open");
+
+        if (elapsed - phaseStart >= 2.2) {
+
+            setPhase("finish");
+
+        }
+
+    }
+
+
+    /* ===========================
+       7. FINISH
+    ============================ */
+
+    else if (phase === "finish") {
+
+        moveCharacter(ropePosition);
+
+        sceneElement.classList.add("finished");
+
+        // Character remains at the right side.
 
     }
 
@@ -941,14 +706,19 @@ function animate() {
 
 }
 
+
+/* ===============================
+   START
+================================ */
+
 animate();
 
 
-/* =====================================
+/* ===============================
    RESIZE
-===================================== */
+================================ */
 
-window.addEventListener("resize", function() {
+window.addEventListener("resize", () => {
 
     renderer.setSize(180, 350, false);
 
