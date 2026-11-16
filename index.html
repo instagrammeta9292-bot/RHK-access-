@@ -45,8 +45,15 @@ canvas {
     position: absolute;
     top: 20px;
     left: 15px;
+    right: 15px;
     color: white;
-    font-size: 14px;
+    background: #242938;
+    padding: 12px;
+    border-radius: 10px;
+    font-size: 13px;
+    line-height: 1.6;
+    z-index: 10;
+    white-space: pre-line;
 }
 </style>
 </head>
@@ -72,18 +79,33 @@ import { GLTFLoader } from
 'https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/loaders/GLTFLoader.js';
 
 
+/* =========================
+   BASIC SETTINGS
+========================= */
+
 const canvas = document.getElementById("human");
+
 const characterBox = document.getElementById("character");
+
 const status = document.getElementById("status");
 
 const scene = new THREE.Scene();
 
 const camera = new THREE.PerspectiveCamera(
-    35, 180 / 350, 0.1, 100
+    35,
+    180 / 350,
+    0.1,
+    100
 );
 
 camera.position.set(0, 1.1, 4);
+
 camera.lookAt(0, 0.9, 0);
+
+
+/* =========================
+   RENDERER
+========================= */
 
 const renderer = new THREE.WebGLRenderer({
     canvas: canvas,
@@ -96,34 +118,54 @@ renderer.setPixelRatio(
 );
 
 renderer.outputColorSpace = THREE.SRGBColorSpace;
+
 renderer.setSize(180, 350);
 
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
+
 renderer.toneMappingExposure = 1.2;
 
 
-// Lighting
+/* =========================
+   LIGHTING
+========================= */
 
 scene.add(
     new THREE.HemisphereLight(
-        0xffffff, 0x555566, 2
+        0xffffff,
+        0x555566,
+        2
     )
 );
 
 const light = new THREE.DirectionalLight(
-    0xffffff, 3
+    0xffffff,
+    3
 );
 
 light.position.set(2, 4, 5);
+
 scene.add(light);
 
 
-// Load local GLB model
-
-const loader = new GLTFLoader();
+/* =========================
+   MODEL VARIABLES
+========================= */
 
 let human = null;
+
 let mixer = null;
+
+let animationClips = [];
+
+let animationNames = [];
+
+
+/* =========================
+   LOAD GLB MODEL
+========================= */
+
+const loader = new GLTFLoader();
 
 loader.load(
 
@@ -135,6 +177,9 @@ loader.load(
 
         scene.add(human);
 
+
+        // Calculate model dimensions
+
         const box = new THREE.Box3()
             .setFromObject(human);
 
@@ -142,63 +187,125 @@ loader.load(
             new THREE.Vector3()
         );
 
+
+        // Adjust model size
+
         const scale = 1.7 / size.y;
 
         human.scale.setScalar(scale);
 
         human.position.y = -box.min.y * scale;
 
-        // Load available model animations
 
-        if (gltf.animations.length > 0) {
+        // Check animations
+
+        animationClips = gltf.animations;
+
+        animationNames = animationClips.map(
+            animation => animation.name
+        );
+
+
+        console.log(
+            "Animation count:",
+            animationClips.length
+        );
+
+        console.log(
+            "Animation names:",
+            animationNames
+        );
+
+
+        // Display animation information
+
+        if (animationClips.length > 0) {
 
             mixer = new THREE.AnimationMixer(human);
 
-            const clip = gltf.animations.find(
-                animation => /walk|run/i.test(animation.name)
+            status.textContent =
+                "3D Character Loaded!\n" +
+                "Animations found: " +
+                animationClips.length +
+                "\nNames: " +
+                animationNames.join(", ");
+
+            // Play idle animation if available
+
+            const idleClip = animationClips.find(
+                clip => /idle/i.test(clip.name)
             );
 
-            if (clip) {
-                mixer.clipAction(clip).play();
+            if (idleClip) {
+
+                mixer.clipAction(idleClip).play();
+
+            } else {
+
+                console.log("No idle animation found.");
+
             }
+
+        } else {
+
+            status.textContent =
+                "3D Character Loaded!\n" +
+                "No animations found in man.glb.";
 
         }
 
-        status.textContent = "3D Character Loaded!";
-
     },
+
 
     function(progress) {
 
         if (progress.total > 0) {
+
+            const percentage = Math.round(
+                progress.loaded / progress.total * 100
+            );
+
             status.textContent =
-                "Loading: " +
-                Math.round(
-                    progress.loaded / progress.total * 100
-                ) + "%";
+                "Loading 3D character: " +
+                percentage + "%";
+
         }
 
     },
 
+
     function(error) {
 
-        console.error(error);
+        console.error(
+            "Model loading error:",
+            error
+        );
 
         status.textContent =
-            "Unable to load man.glb. Check file location.";
+            "Unable to load man.glb.\n" +
+            "Check the filename and GitHub repository.";
 
     }
 
 );
 
 
-// Movement
+/* =========================
+   LEFT TO RIGHT MOVEMENT
+========================= */
 
 let position = -180;
+
 let direction = 1;
+
 let lastTime = 0;
 
 const speed = 100;
+
+
+/* =========================
+   ANIMATION LOOP
+========================= */
 
 function animate(time) {
 
@@ -210,38 +317,66 @@ function animate(time) {
 
     lastTime = time;
 
+
+    // Move character
+
     const screenWidth = window.innerWidth;
-    const characterWidth = characterBox.offsetWidth;
+
+    const characterWidth =
+        characterBox.offsetWidth;
 
     position += direction * speed * delta;
 
+
+    // Turn at right side
+
     if (position >= screenWidth - characterWidth) {
+
         position = screenWidth - characterWidth;
+
         direction = -1;
+
     }
 
+
+    // Turn at left side
+
     if (position <= 0) {
+
         position = 0;
+
         direction = 1;
+
     }
+
+
+    // Move and face movement direction
 
     characterBox.style.transform =
         `translateX(${position}px) scaleX(${direction < 0 ? -1 : 1})`;
 
+
+    // Update model animations
+
     if (mixer) {
+
         mixer.update(delta);
+
     }
+
 
     renderer.render(scene, camera);
 
 }
 
-animate(0);
+requestAnimationFrame(animate);
 
 
-// Resize
+/* =========================
+   RESIZE
+========================= */
 
-window.addEventListener("resize", () => {
+window.addEventListener("resize", function() {
 
     renderer.setSize(
         canvas.clientWidth,
