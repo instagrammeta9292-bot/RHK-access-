@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>3D Human Character</title>
+<title>3D Human - Skeleton Detector</title>
 
 <style>
 * {
@@ -43,21 +43,37 @@ canvas {
 
 #status {
     position: absolute;
-    top: 20px;
-    left: 15px;
-    right: 15px;
+    top: 12px;
+    left: 12px;
+    right: 12px;
+    max-height: 43vh;
+    overflow-y: auto;
     z-index: 10;
     padding: 14px;
     background: #252b3b;
     color: white;
     border-radius: 12px;
-    font-size: 13px;
-    line-height: 1.6;
+    font-size: 12px;
+    line-height: 1.7;
     white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+#status strong {
+    color: #8ce5bd;
+}
+
+#character-label {
+    position: absolute;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: #aaa;
+    font-size: 11px;
+    pointer-events: none;
 }
 </style>
 
-<!-- IMPORTANT: Three.js import map -->
 <script type="importmap">
 {
     "imports": {
@@ -73,11 +89,15 @@ canvas {
 <div id="scene">
 
     <div id="status">
-        Connecting to 3D engine...
+        Loading 3D human...
     </div>
 
     <div id="character">
         <canvas id="human"></canvas>
+    </div>
+
+    <div id="character-label">
+        3D HUMAN MODEL
     </div>
 
 </div>
@@ -146,13 +166,13 @@ renderer.toneMappingExposure = 1.2;
    LIGHTING
 ========================== */
 
-const ambient = new THREE.HemisphereLight(
-    0xffffff,
-    0x555566,
-    2
+scene.add(
+    new THREE.HemisphereLight(
+        0xffffff,
+        0x555566,
+        2
+    )
 );
-
-scene.add(ambient);
 
 const mainLight = new THREE.DirectionalLight(
     0xffffff,
@@ -174,12 +194,14 @@ scene.add(fillLight);
 
 
 /* ==========================
-   MODEL VARIABLES
+   VARIABLES
 ========================== */
 
 let human = null;
 
 let mixer = null;
+
+let bones = [];
 
 let clips = [];
 
@@ -187,7 +209,7 @@ const clock = new THREE.Clock();
 
 
 /* ==========================
-   LOAD HUMAN MODEL
+   LOAD MODEL
 ========================== */
 
 const loader = new GLTFLoader();
@@ -204,7 +226,8 @@ loader.load(
 
         scene.add(human);
 
-        // Calculate model size
+
+        /* MODEL SIZE */
 
         const box = new THREE.Box3()
             .setFromObject(human);
@@ -212,8 +235,6 @@ loader.load(
         const size = box.getSize(
             new THREE.Vector3()
         );
-
-        // Fit model into the screen
 
         if (size.y > 0) {
 
@@ -225,59 +246,92 @@ loader.load(
 
         }
 
-        // Check animations
 
-        clips = gltf.animations;
+        /* DETECT BONES */
 
-        let result = "";
+        bones = [];
 
-        if (clips.length > 0) {
+        human.traverse(function(object) {
 
-            mixer = new THREE.AnimationMixer(human);
+            if (object.isBone) {
 
-            const names = clips.map(
-                clip => clip.name
-            );
-
-            result =
-                "\nAnimations found: " +
-                clips.length +
-                "\nNames: " +
-                names.join(", ");
-
-            console.log("Animations:", names);
-
-            // Play walk animation if available
-
-            const walk = clips.find(
-                clip => /walk/i.test(clip.name)
-            );
-
-            const idle = clips.find(
-                clip => /idle/i.test(clip.name)
-            );
-
-            if (walk) {
-
-                mixer.clipAction(walk).play();
-
-            } else if (idle) {
-
-                mixer.clipAction(idle).play();
+                bones.push(object.name);
 
             }
 
+        });
+
+
+        /* DETECT ANIMATIONS */
+
+        clips = gltf.animations;
+
+        let report = "";
+
+        report += "3D HUMAN LOADED SUCCESSFULLY!\n\n";
+
+        report += "ANIMATION CHECK\n";
+
+        report += "Total animations: " +
+            clips.length + "\n";
+
+        if (clips.length > 0) {
+
+            report += "Animation names:\n";
+
+            clips.forEach(function(clip, index) {
+
+                report +=
+                    (index + 1) + ". " +
+                    clip.name + "\n";
+
+            });
+
+            mixer = new THREE.AnimationMixer(human);
+
         } else {
 
-            result =
-                "\nNo animations found in this model.";
+            report += "No animations found.\n";
 
         }
 
-        status.textContent =
-            "3D HUMAN LOADED SUCCESSFULLY!" + result;
 
-        console.log("Model loaded:", gltf);
+        /* BONE CHECK */
+
+        report += "\n--------------------\n";
+
+        report += "SKELETON CHECK\n";
+
+        report += "Total bones: " +
+            bones.length + "\n\n";
+
+        if (bones.length > 0) {
+
+            report += "BONE NAMES:\n";
+
+            bones.forEach(function(name, index) {
+
+                report +=
+                    (index + 1) + ". " +
+                    name + "\n";
+
+            });
+
+        } else {
+
+            report +=
+                "No bones detected in this model.\n";
+
+        }
+
+
+        /* SHOW RESULT ON SCREEN */
+
+        status.textContent = report;
+
+        console.log("Detected bones:", bones);
+
+        console.log("Animations:", clips);
 
     },
 
@@ -285,13 +339,13 @@ loader.load(
 
         if (progress.total > 0) {
 
-            const percentage = Math.round(
+            const percent = Math.round(
                 progress.loaded / progress.total * 100
             );
 
             status.textContent =
                 "Loading 3D human: " +
-                percentage + "%";
+                percent + "%";
 
         } else {
 
@@ -304,15 +358,11 @@ loader.load(
 
     function(error) {
 
-        console.error("GLB ERROR:", error);
+        console.error(error);
 
         status.textContent =
             "MODEL LOADING FAILED!\n\n" +
-            "Check these:\n" +
-            "1. Is man.glb in the repository root?\n" +
-            "2. Is the filename exactly man.glb?\n" +
-            "3. Is your internet connected?\n" +
-            "4. Is the GLB file valid?";
+            "Check that man.glb exists in the repository root.";
 
     }
 
@@ -320,7 +370,7 @@ loader.load(
 
 
 /* ==========================
-   LEFT TO RIGHT MOVEMENT
+   MOVEMENT
 ========================== */
 
 let position = -180;
@@ -331,7 +381,7 @@ const speed = 100;
 
 
 /* ==========================
-   MAIN ANIMATION
+   ANIMATION LOOP
 ========================== */
 
 function animate() {
@@ -343,8 +393,6 @@ function animate() {
         0.05
     );
 
-    // Move character
-
     const screenWidth = window.innerWidth;
 
     const characterWidth =
@@ -352,7 +400,8 @@ function animate() {
 
     position += direction * speed * delta;
 
-    // Right edge
+
+    // RIGHT SIDE
 
     if (position >= screenWidth - characterWidth) {
 
@@ -362,7 +411,8 @@ function animate() {
 
     }
 
-    // Left edge
+
+    // LEFT SIDE
 
     if (position <= 0) {
 
@@ -372,12 +422,14 @@ function animate() {
 
     }
 
-    // Character direction
+
+    // MOVE CHARACTER
 
     characterBox.style.transform =
         `translateX(${position}px) scaleX(${direction < 0 ? -1 : 1})`;
 
-    // Update 3D animation
+
+    // UPDATE MODEL ANIMATION
 
     if (mixer) {
 
@@ -393,7 +445,7 @@ animate();
 
 
 /* ==========================
-   SCREEN RESIZE
+   RESIZE
 ========================== */
 
 window.addEventListener("resize", function() {
