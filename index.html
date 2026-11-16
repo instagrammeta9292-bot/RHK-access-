@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>3D Character Experience</title>
+<title>3D Human Experience</title>
 
 <style>
 * {
@@ -22,6 +22,7 @@ body {
 #scene {
     width: 100%;
     height: 100vh;
+    height: 100dvh;
     position: relative;
     overflow: hidden;
 }
@@ -36,33 +37,34 @@ body {
 }
 
 canvas {
+    display: block;
     width: 100%;
     height: 100%;
-    display: block;
 }
 
 #message {
     position: absolute;
     top: 25%;
     left: 50%;
-    transform: translateX(-50%) translateY(10px);
+    transform: translate(-50%, 15px);
+    background: #fff;
+    color: #292338;
     padding: 15px 22px;
-    background: white;
-    color: #242436;
-    border-radius: 16px;
-    font-size: 15px;
+    border-radius: 18px;
+    font-size: 17px;
+    font-weight: bold;
     text-align: center;
-    max-width: 85%;
     width: max-content;
+    max-width: 88%;
     opacity: 0;
-    transition: 0.5s;
+    transition: 0.6s;
     z-index: 5;
-    box-shadow: 0 8px 30px #0004;
+    box-shadow: 0 8px 30px #0005;
 }
 
 #message.show {
     opacity: 1;
-    transform: translateX(-50%) translateY(0);
+    transform: translate(-50%, 0);
 }
 
 #status {
@@ -70,10 +72,10 @@ canvas {
     top: 12px;
     left: 12px;
     right: 12px;
-    padding: 10px;
-    border-radius: 10px;
     background: #252b3b;
     color: white;
+    padding: 12px;
+    border-radius: 12px;
     font-size: 12px;
     z-index: 10;
 }
@@ -94,7 +96,7 @@ canvas {
 
 <div id="scene">
 
-    <div id="status">Loading 3D character...</div>
+    <div id="status">Loading 3D human...</div>
 
     <div id="message"></div>
 
@@ -112,9 +114,9 @@ import { GLTFLoader } from
 "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/loaders/GLTFLoader.js";
 
 
-/* =================================
+/* =====================================
    ELEMENTS
-================================= */
+===================================== */
 
 const canvas = document.getElementById("human");
 
@@ -125,9 +127,9 @@ const status = document.getElementById("status");
 const message = document.getElementById("message");
 
 
-/* =================================
-   THREE JS
-================================= */
+/* =====================================
+   SCENE
+===================================== */
 
 const scene = new THREE.Scene();
 
@@ -142,6 +144,10 @@ camera.position.set(0, 1.1, 4);
 
 camera.lookAt(0, 0.9, 0);
 
+
+/* =====================================
+   RENDERER
+===================================== */
 
 const renderer = new THREE.WebGLRenderer({
     canvas: canvas,
@@ -162,9 +168,9 @@ renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.2;
 
 
-/* =================================
-   LIGHTS
-================================= */
+/* =====================================
+   LIGHTING
+===================================== */
 
 scene.add(
     new THREE.HemisphereLight(
@@ -174,19 +180,28 @@ scene.add(
     )
 );
 
-const light = new THREE.DirectionalLight(
+const mainLight = new THREE.DirectionalLight(
     0xffffff,
     3
 );
 
-light.position.set(2, 4, 5);
+mainLight.position.set(2, 4, 5);
 
-scene.add(light);
+scene.add(mainLight);
+
+const fillLight = new THREE.DirectionalLight(
+    0x9ebaff,
+    1
+);
+
+fillLight.position.set(-3, 2, -2);
+
+scene.add(fillLight);
 
 
-/* =================================
-   MODEL VARIABLES
-================================= */
+/* =====================================
+   VARIABLES
+===================================== */
 
 let human = null;
 
@@ -194,9 +209,13 @@ let mixer = null;
 
 let walkAction = null;
 
+let isWalking = false;
+
 let bones = {};
 
 let baseRotations = {};
+
+let kneelBones = [];
 
 let baseY = 0;
 
@@ -206,16 +225,12 @@ let phaseStart = 0;
 
 let currentTime = 0;
 
-let startX = -200;
-
-let centerX = 0;
-
-let messageTimer;
+const clock = new THREE.Clock();
 
 
-/* =================================
+/* =====================================
    HELPER FUNCTIONS
-================================= */
+===================================== */
 
 function smooth(t) {
 
@@ -226,6 +241,37 @@ function smooth(t) {
 function lerp(a, b, t) {
 
     return a + (b - a) * t;
+
+}
+
+function normalize(name) {
+
+    return name.toLowerCase().replace(
+        /[^a-z0-9]/g,
+        ""
+    );
+
+}
+
+function findBone(names) {
+
+    for (const name of names) {
+
+        const result = bones[normalize(name)];
+
+        if (result) return result;
+
+    }
+
+    return null;
+
+}
+
+function setPhase(name) {
+
+    phase = name;
+
+    phaseStart = currentTime;
 
 }
 
@@ -243,18 +289,297 @@ function hideMessage() {
 
 }
 
-function setPhase(nextPhase) {
 
-    phase = nextPhase;
+/* =====================================
+   FLOWER MODEL
+===================================== */
 
-    phaseStart = currentTime;
+const flower = new THREE.Group();
+
+const flowerStemMaterial =
+new THREE.MeshStandardMaterial({
+    color: 0x258b48,
+    roughness: 0.8
+});
+
+const petalMaterial =
+new THREE.MeshStandardMaterial({
+    color: 0xff73a6,
+    roughness: 0.45
+});
+
+const centerMaterial =
+new THREE.MeshStandardMaterial({
+    color: 0xffd65c
+});
+
+const stem = new THREE.Mesh(
+    new THREE.CylinderGeometry(
+        0.018, 0.025, 0.65, 8
+    ),
+    flowerStemMaterial
+);
+
+stem.position.y = -0.15;
+
+flower.add(stem);
+
+
+// Flower centre
+
+const centre = new THREE.Mesh(
+    new THREE.SphereGeometry(0.09, 16, 16),
+    centerMaterial
+);
+
+centre.position.y = 0.25;
+
+flower.add(centre);
+
+
+// Six flower petals
+
+for (let i = 0; i < 6; i++) {
+
+    const angle = i * Math.PI / 3;
+
+    const petal = new THREE.Mesh(
+        new THREE.SphereGeometry(
+            0.105, 16, 16
+        ),
+        petalMaterial
+    );
+
+    petal.position.set(
+        Math.cos(angle) * 0.13,
+        0.27,
+        Math.sin(angle) * 0.13
+    );
+
+    petal.scale.set(1, 0.65, 1);
+
+    flower.add(petal);
 
 }
 
 
-/* =================================
-   LOAD MODEL
-================================= */
+// Flower leaf
+
+const leaf = new THREE.Mesh(
+    new THREE.SphereGeometry(0.1, 12, 12),
+    flowerStemMaterial
+);
+
+leaf.position.set(0.09, -0.12, 0);
+
+leaf.scale.set(1.5, 0.45, 0.6);
+
+flower.add(leaf);
+
+
+// Initially hidden
+
+flower.visible = false;
+
+flower.scale.setScalar(0.45);
+
+flower.position.set(0.42, 0.8, 0.3);
+
+scene.add(flower);
+
+
+/* =====================================
+   WALKING CONTROLS
+===================================== */
+
+function startWalking() {
+
+    if (!walkAction) return;
+
+    if (isWalking) return;
+
+    walkAction.reset();
+
+    walkAction.enabled = true;
+
+    walkAction.setEffectiveTimeScale(1);
+
+    walkAction.setEffectiveWeight(1);
+
+    walkAction.setLoop(THREE.LoopRepeat);
+
+    walkAction.fadeIn(0.3);
+
+    walkAction.play();
+
+    isWalking = true;
+
+}
+
+function stopWalking() {
+
+    if (!walkAction || !isWalking) return;
+
+    walkAction.fadeOut(0.25);
+
+    isWalking = false;
+
+}
+
+
+/* =====================================
+   FIND KNEELING BONES
+===================================== */
+
+function setupKneelBones() {
+
+    const leftUpper = findBone([
+        "LeftUpLeg",
+        "LeftUpperLeg",
+        "thigh_l",
+        "LeftThigh"
+    ]);
+
+    const rightUpper = findBone([
+        "RightUpLeg",
+        "RightUpperLeg",
+        "thigh_r",
+        "RightThigh"
+    ]);
+
+    const leftLower = findBone([
+        "LeftLeg",
+        "LeftLowerLeg",
+        "calf_l",
+        "LeftKnee"
+    ]);
+
+    const rightLower = findBone([
+        "RightLeg",
+        "RightLowerLeg",
+        "calf_r",
+        "RightKnee"
+    ]);
+
+    const hips = findBone([
+        "Hips",
+        "Pelvis"
+    ]);
+
+    const spine = findBone([
+        "Spine",
+        "Spine1"
+    ]);
+
+    kneelBones = [
+        {
+            bone: leftUpper,
+            x: -0.85,
+            z: 0
+        },
+        {
+            bone: rightUpper,
+            x: -0.85,
+            z: 0
+        },
+        {
+            bone: leftLower,
+            x: 1.35,
+            z: 0
+        },
+        {
+            bone: rightLower,
+            x: 1.35,
+            z: 0
+        },
+        {
+            bone: hips,
+            x: -0.15,
+            z: 0
+        },
+        {
+            bone: spine,
+            x: 0.12,
+            z: 0
+        }
+    ].filter(item => item.bone);
+
+
+    console.log(
+        "Kneeling bones:",
+        kneelBones.map(item => item.bone.name)
+    );
+
+}
+
+
+/* =====================================
+   KNEEL POSE
+===================================== */
+
+function applyKneel(progress) {
+
+    const t = smooth(progress);
+
+    for (const item of kneelBones) {
+
+        const bone = item.bone;
+
+        const base = baseRotations[
+            normalize(bone.name)
+        ];
+
+        bone.rotation.x =
+            base.x + item.x * t;
+
+        bone.rotation.z =
+            base.z + item.z * t;
+
+    }
+
+    // Lower character slightly
+
+    human.position.y = baseY - 0.12 * t;
+
+}
+
+
+/* =====================================
+   RESTORE STANDING POSE
+===================================== */
+
+function applyStand(progress) {
+
+    const t = smooth(progress);
+
+    for (const item of kneelBones) {
+
+        const bone = item.bone;
+
+        const base = baseRotations[
+            normalize(bone.name)
+        ];
+
+        bone.rotation.x =
+            base.x + item.x * (1 - t);
+
+        bone.rotation.z =
+            base.z + item.z * (1 - t);
+
+    }
+
+    human.position.y = lerp(
+        baseY - 0.12,
+        baseY,
+        t
+    );
+
+}
+
+
+/* =====================================
+   LOAD HUMAN MODEL
+===================================== */
 
 const loader = new GLTFLoader();
 
@@ -269,7 +594,7 @@ loader.load(
         scene.add(human);
 
 
-        // Model sizing
+        // Fit model
 
         const box = new THREE.Box3()
             .setFromObject(human);
@@ -278,52 +603,46 @@ loader.load(
             new THREE.Vector3()
         );
 
-        const scale = 1.7 / size.y;
+        if (size.y > 0) {
 
-        human.scale.setScalar(scale);
+            const scale = 1.7 / size.y;
 
-        human.position.y = -box.min.y * scale;
+            human.scale.setScalar(scale);
 
-        baseY = human.position.y;
+            human.position.y = -box.min.y * scale;
+
+            baseY = human.position.y;
+
+        }
 
 
-        // Find skeleton bones
+        // Detect bones
 
         human.traverse(function(object) {
 
-            if (!object.isBone) return;
+            if (object.isBone) {
 
-            const name = object.name
-                .toLowerCase()
-                .replace(/[^a-z0-9]/g, "");
+                const key = normalize(object.name);
 
-            bones[name] = object;
+                bones[key] = object;
 
-            baseRotations[name] = {
-                x: object.rotation.x,
-                y: object.rotation.y,
-                z: object.rotation.z
-            };
+                baseRotations[key] = {
+                    x: object.rotation.x,
+                    y: object.rotation.y,
+                    z: object.rotation.z
+                };
 
-            console.log("Bone:", name);
+            }
 
         });
 
 
-        // Find useful leg bones
+        // Find kneeling bones
 
-        console.log("Available bones:", Object.keys(bones));
-
-        if (!findBone(["leftupleg", "leftupperleg"])) {
-            console.log("Left upper leg not found");
-        }
-
-        if (!findBone(["rightupleg", "rightupperleg"])) {
-            console.log("Right upper leg not found");
-        }
+        setupKneelBones();
 
 
-        // Load animation
+        // Load walk animation
 
         mixer = new THREE.AnimationMixer(human);
 
@@ -341,232 +660,63 @@ loader.load(
 
 
         status.textContent =
-            "3D CHARACTER READY | " +
+            "3D HUMAN READY | " +
             gltf.animations.length +
             " animations | " +
             Object.keys(bones).length +
             " bones";
 
 
-        // Start sequence
+        // Begin animation
 
-        setPhase("approach");
+        setPhase("enter");
 
     },
 
-    undefined,
+
+    function(progress) {
+
+        if (progress.total > 0) {
+
+            status.textContent =
+                "Loading: " +
+                Math.round(
+                    progress.loaded /
+                    progress.total * 100
+                ) + "%";
+
+        }
+
+    },
+
 
     function(error) {
 
         console.error(error);
 
-        status.textContent = "Could not load man.glb";
+        status.textContent =
+            "Unable to load man.glb";
 
     }
 
 );
 
 
-/* =================================
-   FIND BONE
-================================= */
+/* =====================================
+   CHARACTER POSITION
+===================================== */
 
-function findBone(names) {
+function moveCharacter(x) {
 
-    for (const wanted of names) {
-
-        if (bones[wanted]) {
-            return bones[wanted];
-        }
-
-    }
-
-    return null;
+    characterBox.style.transform =
+        `translateX(${x}px)`;
 
 }
 
 
-/* =================================
-   WALK ANIMATION
-================================= */
-
-function startWalking() {
-
-    if (!walkAction) return;
-
-    walkAction.reset();
-
-    walkAction.fadeIn(0.25);
-
-    walkAction.play();
-
-}
-
-function stopWalking() {
-
-    if (walkAction) {
-
-        walkAction.fadeOut(0.3);
-
-    }
-
-}
-
-
-/* =================================
-   KNEEL / BOW ANIMATION
-================================= */
-
-function kneel(progress) {
-
-    const t = smooth(progress);
-
-    const leftUpper = findBone([
-        "leftupleg",
-        "leftupperleg"
-    ]);
-
-    const rightUpper = findBone([
-        "rightupleg",
-        "rightupperleg"
-    ]);
-
-    const leftLower = findBone([
-        "leftleg",
-        "leftlowerleg"
-    ]);
-
-    const rightLower = findBone([
-        "rightleg",
-        "rightlowerleg"
-    ]);
-
-    const hips = findBone([
-        "hips",
-        "pelvis"
-    ]);
-
-    // Bend upper legs
-
-    if (leftUpper) {
-
-        const base = baseRotations[
-            leftUpper.name.toLowerCase()
-                .replace(/[^a-z0-9]/g, "")
-        ];
-
-        leftUpper.rotation.x =
-            base.x + (-0.9 * t);
-
-    }
-
-    if (rightUpper) {
-
-        const base = baseRotations[
-            rightUpper.name.toLowerCase()
-                .replace(/[^a-z0-9]/g, "")
-        ];
-
-        rightUpper.rotation.x =
-            base.x + (-0.9 * t);
-
-    }
-
-    // Bend lower legs
-
-    if (leftLower) {
-
-        const base = baseRotations[
-            leftLower.name.toLowerCase()
-                .replace(/[^a-z0-9]/g, "")
-        ];
-
-        leftLower.rotation.x =
-            base.x + (1.4 * t);
-
-    }
-
-    if (rightLower) {
-
-        const base = baseRotations[
-            rightLower.name.toLowerCase()
-                .replace(/[^a-z0-9]/g, "")
-        ];
-
-        rightLower.rotation.x =
-            base.x + (1.4 * t);
-
-    }
-
-    // Lower body
-
-    if (hips) {
-
-        const base = baseRotations[
-            hips.name.toLowerCase()
-                .replace(/[^a-z0-9]/g, "")
-        ];
-
-        hips.rotation.x =
-            base.x - (0.2 * t);
-
-    }
-
-    human.position.y = baseY - (0.15 * t);
-
-}
-
-
-/* =================================
-   RESTORE STANDING POSITION
-================================= */
-
-function standUp(progress) {
-
-    const t = smooth(progress);
-
-    for (const name in bones) {
-
-        const bone = bones[name];
-
-        const base = baseRotations[name];
-
-        bone.rotation.x = lerp(
-            bone.rotation.x,
-            base.x,
-            t
-        );
-
-        bone.rotation.y = lerp(
-            bone.rotation.y,
-            base.y,
-            t
-        );
-
-        bone.rotation.z = lerp(
-            bone.rotation.z,
-            base.z,
-            t
-        );
-
-    }
-
-    human.position.y = lerp(
-        human.position.y,
-        baseY,
-        t
-    );
-
-}
-
-
-/* =================================
-   ANIMATION SEQUENCE
-================================= */
-
-const clock = new THREE.Clock();
-
-const WALK_YAW = Math.PI / 2;
+/* =====================================
+   MAIN SEQUENCE
+===================================== */
 
 function animate() {
 
@@ -579,9 +729,15 @@ function animate() {
 
     currentTime += delta;
 
+
+    // Update walk animation only once per frame
+
     if (mixer) {
+
         mixer.update(delta);
+
     }
+
 
     if (!human) {
 
@@ -594,29 +750,29 @@ function animate() {
 
     const screenWidth = window.innerWidth;
 
-    centerX = (screenWidth - 180) / 2;
+    const center = (screenWidth - 180) / 2;
 
 
-    /* -------------------------
-       PHASE 1: ENTER FROM LEFT
-    ------------------------- */
+    /* =================================
+       1. ENTER FROM LEFT
+    ================================= */
 
-    if (phase === "approach") {
-
-        const duration = 4;
+    if (phase === "enter") {
 
         const t = Math.min(
-            (currentTime - phaseStart) / duration,
+            (currentTime - phaseStart) / 4,
             1
         );
 
-        positionCharacter(
-            lerp(startX, centerX, smooth(t))
+        moveCharacter(
+            lerp(-200, center, smooth(t))
         );
 
-        // Face direction of travel
+        // Face walking direction
 
-        human.rotation.y = WALK_YAW;
+        human.rotation.y = Math.PI / 2;
+
+        flower.visible = false;
 
         startWalking();
 
@@ -624,35 +780,33 @@ function animate() {
 
             stopWalking();
 
-            setPhase("face");
+            setPhase("turn");
 
         }
 
     }
 
 
-    /* -------------------------
-       PHASE 2: FACE VISITOR
-    ------------------------- */
+    /* =================================
+       2. TURN TO FRONT
+    ================================= */
 
-    else if (phase === "face") {
+    else if (phase === "turn") {
 
         const t = Math.min(
-            (currentTime - phaseStart) / 0.8,
+            (currentTime - phaseStart) / 0.9,
             1
         );
 
-        positionCharacter(centerX);
+        moveCharacter(center);
 
         human.rotation.y = lerp(
-            WALK_YAW,
+            Math.PI / 2,
             0,
             smooth(t)
         );
 
         if (t >= 1) {
-
-            showMessage("I have a surprise for you!");
 
             setPhase("kneel");
 
@@ -661,43 +815,55 @@ function animate() {
     }
 
 
-    /* -------------------------
-       PHASE 3: BEND DOWN
-    ------------------------- */
+    /* =================================
+       3. KNEEL DOWN
+    ================================= */
 
     else if (phase === "kneel") {
 
         const t = Math.min(
-            (currentTime - phaseStart) / 1.2,
+            (currentTime - phaseStart) / 1.5,
             1
         );
 
-        positionCharacter(centerX);
+        moveCharacter(center);
 
         human.rotation.y = 0;
 
-        kneel(t);
+        applyKneel(t);
 
         if (t >= 1) {
 
-            setPhase("hold");
+            flower.visible = true;
+
+            showMessage("A FLOWER FOR YOU ❤️");
+
+            setPhase("present");
 
         }
 
     }
 
 
-    /* -------------------------
-       PHASE 4: HOLD POSE
-    ------------------------- */
+    /* =================================
+       4. PRESENT FLOWER
+    ================================= */
 
-    else if (phase === "hold") {
+    else if (phase === "present") {
 
-        positionCharacter(centerX);
+        moveCharacter(center);
 
         human.rotation.y = 0;
 
-        if (currentTime - phaseStart >= 2.5) {
+        // Gentle flower movement
+
+        flower.position.y =
+            0.8 + Math.sin(currentTime * 2) * 0.025;
+
+        flower.rotation.z =
+            Math.sin(currentTime * 1.5) * 0.06;
+
+        if (currentTime - phaseStart >= 3.5) {
 
             hideMessage();
 
@@ -708,22 +874,22 @@ function animate() {
     }
 
 
-    /* -------------------------
-       PHASE 5: STAND UP
-    ------------------------- */
+    /* =================================
+       5. STAND UP
+    ================================= */
 
     else if (phase === "stand") {
 
         const t = Math.min(
-            (currentTime - phaseStart) / 1.2,
+            (currentTime - phaseStart) / 1.5,
             1
         );
 
-        positionCharacter(centerX);
+        moveCharacter(center);
 
-        standUp(t);
+        applyStand(t);
 
-        human.rotation.y = 0;
+        flower.visible = false;
 
         if (t >= 1) {
 
@@ -734,24 +900,22 @@ function animate() {
     }
 
 
-    /* -------------------------
-       PHASE 6: WALK OUT RIGHT
-    ------------------------- */
+    /* =================================
+       6. WALK TO RIGHT
+    ================================= */
 
     else if (phase === "exit") {
 
-        const duration = 3.5;
-
         const t = Math.min(
-            (currentTime - phaseStart) / duration,
+            (currentTime - phaseStart) / 4,
             1
         );
 
-        positionCharacter(
-            lerp(centerX, screenWidth + 200, smooth(t))
+        moveCharacter(
+            lerp(center, screenWidth + 200, smooth(t))
         );
 
-        human.rotation.y = WALK_YAW;
+        human.rotation.y = Math.PI / 2;
 
         startWalking();
 
@@ -761,8 +925,10 @@ function animate() {
 
             human.visible = false;
 
+            flower.visible = false;
+
             status.textContent =
-                "Character sequence completed!";
+                "Animation completed!";
 
             setPhase("finished");
 
@@ -771,46 +937,16 @@ function animate() {
     }
 
 
-    /* -------------------------
-       FINISHED
-    ------------------------- */
-
-    else if (phase === "finished") {
-
-        // Character has exited the screen.
-
-    }
-
-
     renderer.render(scene, camera);
 
 }
 
-
-/* =================================
-   POSITION CHARACTER
-================================= */
-
-function positionCharacter(x) {
-
-    characterBox.style.transform =
-        `translateX(${x}px)`;
-
-}
-
-
-/* =================================
-   START
-================================= */
-
-let position = -200;
-
 animate();
 
 
-/* =================================
+/* =====================================
    RESIZE
-================================= */
+===================================== */
 
 window.addEventListener("resize", function() {
 
