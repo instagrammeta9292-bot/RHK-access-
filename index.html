@@ -2,20 +2,23 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#090711">
+<meta name="description" content="RHK WISHES - Create beautiful interactive wishes websites.">
 
-    <meta name="theme-color" content="#090711">
-    <meta name="description" content="RHK WISHES - Create beautiful interactive wishes websites.">
+<title>RHK WISHES</title>
 
-    <title>RHK WISHES | Create Something Special</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="css/style.css">
 
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-
-    <link rel="stylesheet" href="css/style.css">
+<!-- Independent template styles -->
+<link rel="stylesheet" href="templates/birthday-book/style.css">
+<link rel="stylesheet" href="templates/birthday-surprise/style.css">
+<link rel="stylesheet" href="templates/love-letter/style.css">
 </head>
 
 <body>
@@ -23,12 +26,9 @@
 <div class="ambient ambient-one"></div>
 <div class="ambient ambient-two"></div>
 
-<!-- APP HEADER -->
-
 <header class="header">
     <a href="index.html" class="brand">
         <div class="brand-icon">R</div>
-
         <div class="brand-text">
             <h2>RHK <span>WISHES</span></h2>
             <small>MAKE IT MEMORABLE</small>
@@ -42,19 +42,11 @@
                 <path d="m20 20-4-4"></path>
             </svg>
         </button>
-
-        <button class="profile-btn" id="profileButton" aria-label="Profile">
-            <span>G</span>
-        </button>
+        <button class="profile-btn" id="profileButton">G</button>
     </div>
 </header>
 
-
-<!-- MAIN APP -->
-
 <main id="mainApp">
-
-    <!-- SEARCH -->
 
     <section class="search-section" id="searchSection">
         <div class="search-box">
@@ -62,38 +54,22 @@
                 <circle cx="11" cy="11" r="7"></circle>
                 <path d="m20 20-4-4"></path>
             </svg>
-
-            <input
-                type="search"
-                id="searchInput"
-                placeholder="Search birthday, love, anniversary..."
-                autocomplete="off"
-            >
-
-            <button id="clearSearch" aria-label="Clear search">×</button>
+            <input type="search" id="searchInput"
+                placeholder="Search birthday, love, anniversary...">
+            <button id="clearSearch">×</button>
         </div>
     </section>
 
-
-    <!-- HOME CONTENT -->
-
     <div id="homeContent">
 
-        <!-- HERO -->
-
         <section class="hero">
-
             <div class="hero-content">
-
                 <div class="hero-label">
                     <span class="live-dot"></span>
                     YOUR CREATIVE SPACE
                 </div>
 
-                <h1>
-                    Make every wish
-                    <span>unforgettable.</span>
-                </h1>
+                <h1>Make every wish <span>unforgettable.</span></h1>
 
                 <p>
                     Beautiful templates. Personal memories.
@@ -101,10 +77,8 @@
                 </p>
 
                 <button class="primary-btn" id="exploreButton">
-                    Explore Templates
-                    <span>↗</span>
+                    Explore Templates <span>↗</span>
                 </button>
-
             </div>
 
             <div class="hero-art">
@@ -117,8 +91,7 @@
                     <div class="hero-card-sub">Made just for you</div>
                     <div class="hero-card-line"></div>
                     <div class="hero-card-bottom">
-                        <span>WITH LOVE</span>
-                        <span>♥</span>
+                        <span>WITH LOVE</span><span>♥</span>
                     </div>
                 </div>
 
@@ -126,82 +99,52 @@
                 <div class="floating-star star-two">✧</div>
                 <div class="floating-star star-three">✦</div>
             </div>
-
         </section>
 
-
-        <!-- QUICK STATS -->
-
         <section class="stats-row">
-
             <div class="stat-item">
                 <strong id="templateCount">00</strong>
                 <span>Templates</span>
             </div>
-
             <div class="stat-divider"></div>
-
             <div class="stat-item">
                 <strong>∞</strong>
                 <span>Possibilities</span>
             </div>
-
             <div class="stat-divider"></div>
-
             <div class="stat-item">
                 <strong>100%</strong>
                 <span>Personal</span>
             </div>
-
         </section>
 
-
-        <!-- CATEGORIES -->
-
-        <section class="section" id="categoriesSection">
-
+        <section class="section">
             <div class="section-heading">
                 <div>
                     <span class="eyebrow">FIND YOUR MOMENT</span>
                     <h2>Explore Categories</h2>
                 </div>
             </div>
-
             <div class="category-grid" id="categoryGrid"></div>
-
         </section>
 
-
-        <!-- TRENDING -->
-
-        <section class="section" id="trendingSection">
-
+        <section class="section">
             <div class="section-heading">
                 <div>
                     <span class="eyebrow">PEOPLE LOVE THESE</span>
                     <h2>Trending Templates</h2>
                 </div>
-
-                <button class="text-btn" id="seeAllButton">
-                    See all →
-                </button>
+                <button class="text-btn" id="seeAllButton">See all →</button>
             </div>
-
             <div class="template-grid" id="trendingGrid"></div>
-
         </section>
 
-
-        <!-- ALL TEMPLATES -->
-
         <section class="section" id="allTemplatesSection">
-
             <div class="section-heading">
                 <div>
                     <span class="eyebrow">YOUR NEXT CREATION</span>
                     <h2>All Templates</h2>
                 </div>
-
                 <span class="result-count" id="resultCount"></span>
             </div>
 
@@ -217,134 +160,163 @@
                 <div>✧</div>
                 <h3>No templates found</h3>
                 <p>Try another search or category.</p>
-                <button class="secondary-btn" id="resetSearch">
-                    Clear filters
-                </button>
+                <button class="secondary-btn" id="resetSearch">Clear filters</button>
             </div>
-
         </section>
-
-
-        <!-- FOOTER -->
 
         <footer class="footer">
             <div class="footer-brand">RHK <span>WISHES</span></div>
-
             <p>Every moment deserves a beautiful memory.</p>
-
             <div class="footer-line"></div>
-
             <small>© 2026 RHK WISHES. All rights reserved.</small>
         </footer>
 
     </div>
 
-
-    <!-- TEMPLATE PREVIEW -->
+    <!-- TEMPLATE INFORMATION PREVIEW -->
 
     <section id="previewPage" class="preview-page hidden">
 
-        <button class="back-btn" id="backButton">
-            ← Back to templates
-        </button>
+        <button class="back-btn" id="backButton">← Back to templates</button>
 
         <div class="preview-cover" id="previewCover">
-
             <div class="preview-cover-content">
                 <span class="preview-category" id="previewCategory"></span>
-
                 <div class="preview-emoji" id="previewEmoji"></div>
-
                 <h1 id="previewTitle"></h1>
-
                 <p id="previewDescription"></p>
             </div>
-
         </div>
 
         <div class="preview-details">
-
             <div class="preview-title-row">
                 <div>
                     <span class="eyebrow">TEMPLATE PREVIEW</span>
                     <h2 id="previewName"></h2>
                 </div>
-
                 <span class="access-badge" id="previewAccess"></span>
             </div>
 
             <p id="previewLongDescription"></p>
 
             <div class="preview-information">
-                <div>
-                    <span>Category</span>
-                    <strong id="previewCategoryInfo"></strong>
-                </div>
-
-                <div>
-                    <span>Experience</span>
-                    <strong id="previewExperience"></strong>
-                </div>
-
-                <div>
-                    <span>Template ID</span>
-                    <strong id="previewId"></strong>
-                </div>
+                <div><span>Category</span><strong id="previewCategoryInfo"></strong></div>
+                <div><span>Experience</span><strong id="previewExperience"></strong></div>
+                <div><span>Template ID</span><strong id="previewId"></strong></div>
             </div>
 
             <div class="preview-actions">
-
                 <button class="primary-btn full-btn" id="useTemplateButton">
-                    Use This Template
-                    <span>→</span>
+                    Use This Template →
                 </button>
-
                 <button class="secondary-btn full-btn" id="previewBackButton">
                     Explore More
                 </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- TEMPLATE EDITOR -->
+
+    <section id="editorPage" class="editor-page hidden">
+
+        <div class="editor-topbar">
+            <button class="back-btn" id="editorBackButton">← Back</button>
+            <div>
+                <strong id="editorTemplateName">Template Editor</strong>
+                <small>RHK WISHES STUDIO</small>
+            </div>
+            <button class="editor-reset" id="editorReset">Reset</button>
+        </div>
+
+        <div class="editor-layout">
+
+            <div class="editor-sidebar">
+
+                <div class="editor-heading">
+                    <span class="eyebrow">PERSONALIZE YOUR WEBSITE</span>
+                    <h2>Customize</h2>
+                    <p>Edit your content and see changes instantly.</p>
+                </div>
+
+                <div id="editorFields"></div>
+
+                <div class="editor-notice">
+                    <span>✦</span>
+                    Your changes are currently stored only in this browser session.
+                </div>
 
             </div>
 
+            <div class="editor-workspace">
+
+                <div class="workspace-heading">
+                    <div>
+                        <strong>Live Preview</strong>
+                        <small>Interact with your website below</small>
+                    </div>
+                    <span class="live-preview-label">
+                        <span class="live-dot"></span> LIVE
+                    </span>
+                </div>
+
+                <div class="preview-device">
+                    <div class="device-top">
+                        <span></span>
+                        <span>RHK WISHES PREVIEW</span>
+                        <span></span>
+                    </div>
+
+                    <div id="templateStage" class="template-stage"></div>
+                </div>
+
+                <p class="workspace-footnote">
+                    This is an interactive preview of your selected template.
+                </p>
+
+            </div>
         </div>
 
     </section>
 
 </main>
 
-
-<!-- BOTTOM NAVIGATION -->
-
-<nav class="bottom-nav">
-
+<nav class="bottom-nav" id="bottomNav">
     <button class="nav-item active" data-nav="home">
-        <span class="nav-icon">⌂</span>
-        <span>Home</span>
+        <span class="nav-icon">⌂</span><span>Home</span>
     </button>
-
     <button class="nav-item" data-nav="explore">
-        <span class="nav-icon">◈</span>
-        <span>Explore</span>
+        <span class="nav-icon">◈</span><span>Explore</span>
     </button>
-
     <button class="nav-item" data-nav="projects">
-        <span class="nav-icon">▤</span>
-        <span>Projects</span>
+        <span class="nav-icon">▤</span><span>Projects</span>
     </button>
-
     <button class="nav-item" data-nav="profile">
-        <span class="nav-icon">◉</span>
-        <span>Profile</span>
+        <span class="nav-icon">◉</span><span>Profile</span>
     </button>
-
 </nav>
-
-
-<!-- TOAST -->
 
 <div class="toast" id="toast"></div>
 
+<!-- DATA AND ENGINE -->
 
 <script src="js/templates.js"></script>
+<script src="js/template-engine.js"></script>
+
+<!-- TEMPLATE REGISTRATION -->
+
+<script src="templates/birthday-book/config.js"></script>
+<script src="templates/birthday-book/template.js"></script>
+
+<script src="templates/birthday-surprise/config.js"></script>
+<script src="templates/birthday-surprise/template.js"></script>
+
+<script src="templates/love-letter/config.js"></script>
+<script src="templates/love-letter/template.js"></script>
+
+<!-- APPLICATION -->
+
+<script src="js/editor.js"></script>
 <script src="js/app.js"></script>
 
 </body>
